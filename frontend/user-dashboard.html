@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Dashboard - Mind Mate</title>
+    <meta
+      name="description"
+      content="Your personal mental wellness dashboard with AI chat, counseling booking, and progress tracking."
+    />
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+      
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Main design system + utilities -->
+    <link rel="stylesheet" href="styles/main.css" />
+
+    <style>
+      /* --- Small custom layout polish for user dashboard --- */
+
+      .dashboard-shell {
+        min-height: 100vh;
+        background: var(--gradient-soft);
+      }
+
+      .dashboard-inner {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 1.5rem 1.25rem 3rem;
+      }
+
+      .dashboard-header-card {
+        border-radius: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        
+      }
+
+      .dashboard-user-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .dashboard-avatar {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 999px;
+        background: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .dashboard-header-text h1 {
+        font-size: 1.35rem;
+        line-height: 1.3;
+      }
+
+      .dashboard-header-text p {
+        font-size: 0.875rem;
+      }
+
+      .dashboard-header-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+      }
+
+      .quick-pill {
+        border-radius: 999px;
+        padding: 0.9rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .quick-pill:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08);
+      }
+
+      .quick-pill-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--muted);
+      }
+
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+      }
+
+      /* Mood buttons (keeping your existing behaviour) */
+      .mood-btn {
+        font-size: 1.75rem;
+        padding: 0.5rem;
+        border-radius: 9999px;
+        background: transparent;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: transform 0.2s ease, background-color 0.2s ease,
+          border-color 0.2s ease;
+      }
+      .mood-btn:hover {
+        transform: scale(1.15);
+        background-color: var(--muted);
+      }
+      .mood-btn.selected {
+        transform: scale(1.1);
+        border-color: var(--primary);
+        background-color: var(--muted);
+      }
+
+      /* Modals / calendar / booking (unchanged, just moved here) */
+      .modal-container {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+      .modal-container.visible {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-card {
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+      }
+      .modal-container.visible .modal-card {
+        transform: scale(1);
+      }
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.5rem;
+        text-align: center;
+      }
+      .calendar-header {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        padding-bottom: 0.5rem;
+      }
+      .calendar-day {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 2.25rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+      }
+      .calendar-day:not(.disabled):hover {
+        background-color: var(--muted);
+      }
+      .calendar-day.today {
+        font-weight: 700;
+        border: 1px solid var(--muted-foreground);
+      }
+      .calendar-day.selected {
+        background-color: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+      }
+      .calendar-day.disabled {
+        color: var(--muted-foreground);
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+      .time-slot-btn {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        background-color: transparent;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.2s ease;
+        font-weight: 500;
+      }
+      .time-slot-btn:hover {
+        background-color: var(--muted);
+        border-color: var(--primary);
+      }
+      .time-slot-btn.selected {
+        background-color: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+      }
+      .card-footer {
+        background-color: var(--background);
+        border-bottom-left-radius: var(--radius);
+        border-bottom-right-radius: var(--radius);
+      }
+      .btn-cancel {
+        border: 1px solid rgba(var(--destructive-rgb), 0.5);
+        color: var(--destructive);
+        background-color: transparent;
+      }
+      .btn-cancel:hover {
+        background-color: rgba(var(--destructive-rgb), 0.1);
+        border-color: var(--destructive);
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-header-card {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .dashboard-header-right {
+          width: 100%;
+          justify-content: space-between;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="dashboard-shell">
+      <div class="dashboard-inner">
+        <!-- HEADER / TOP BAR -->
+        <header class="dashboard-header-card bg-card border">
+          <div class="dashboard-user-meta">
+            <div class="dashboard-avatar">
+              <i data-lucide="brain" class="w-6 h-6 text-primary"></i>
+            </div>
+            <div class="dashboard-header-text">
+              <!-- JS updates this text with the logged-in user's name -->
+              <h1 class="font-bold">Welcome back, Alex!</h1>
+              <p class="text-muted-foreground">
+                How are you feeling today? Your space, your pace. 🌱
+              </p>
+            </div>
+          </div>
+
+          <div class="dashboard-header-right">
+            <!-- Theme settings (existing behaviour, just visually grouped) -->
+            <div class="relative">
+              <button id="theme-settings-btn" class="btn btn-icon">
+                <i data-lucide="palette" class="w-5 h-5"></i>
+              </button>
+              <div
+                id="theme-popover"
+                class="hidden absolute right-0 mt-2 w-64 bg-card border rounded-lg shadow-md z-50"
+              >
+                <div class="p-4">
+                  <h4 class="font-medium text-sm mb-4">Customize Theme</h4>
+                  <div class="flex items-center justify-between mb-4">
+                    <label for="theme-mode-toggle" class="text-sm">Mode</label>
+                    <div class="flex items-center gap-2">
+                      <i
+                        data-lucide="sun"
+                        class="w-4 h-4 text-muted-foreground"
+                      ></i>
+                      <label class="theme-toggle">
+                        <input
+                          type="checkbox"
+                          id="theme-mode-toggle"
+                          class="theme-toggle-input"
+                        />
+                        <span class="theme-toggle-slider"></span>
+                      </label>
+                      <i
+                        data-lucide="moon"
+                        class="w-4 h-4 text-muted-foreground"
+                      ></i>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-sm mb-2 block">Accent Color</label>
+                    <div
+                      class="flex items-center justify-between"
+                      id="accent-color-picker"
+                    >
+                      <button
+                        class="color-swatch"
+                        data-color-hue="238"
+                        style="--swatch-color: hsl(238, 57%, 58%);"
+                        aria-label="Blue Accent"
+                      ></button>
+                      <button
+                        class="color-swatch"
+                        data-color-hue="159"
+                        style="--swatch-color: hsl(159, 64%, 52%);"
+                        aria-label="Green Accent"
+                      ></button>
+                      <button
+                        class="color-swatch"
+                        data-color-hue="340"
+                        style="--swatch-color: hsl(340, 82%, 60%);"
+                        aria-label="Pink Accent"
+                      ></button>
+                      <button
+                        class="color-swatch"
+                        data-color-hue="262"
+                        style="--swatch-color: hsl(262, 52%, 47%);"
+                        aria-label="Purple Accent"
+                      ></button>
+                      <button
+                        class="color-swatch"
+                        data-color-hue="24"
+                        style="--swatch-color: hsl(24, 95%, 53%);"
+                        aria-label="Orange Accent"
+                      ></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-outline btn-sm" onclick="logout()">
+              Logout
+            </button>
+          </div>
+        </header>
+
+        <!-- QUICK ACTIONS -->
+        <section class="mt-6 mb-8">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="section-title">Quick Actions</h2>
+            <p class="text-xs text-muted-foreground">
+              Jump into support in just one tap.
+            </p>
+          </div>
+          <div class="quick-actions-grid">
+            <div
+              class="wellness-card wellness-card-hover quick-pill"
+              onclick="openBookingModal()"
+            >
+              <div class="quick-pill-icon">
+                <i
+                  data-lucide="calendar"
+                  class="w-5 h-5 text-warning"
+                ></i>
+              </div>
+              <div>
+                <div class="font-medium">Book Session</div>
+                <p class="text-xs text-muted-foreground">
+                  Schedule with a counselor
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="wellness-card wellness-card-hover quick-pill"
+              onclick="window.location.href='Chat-bot.html'"
+            >
+              <div class="quick-pill-icon">
+                <i
+                  data-lucide="message-circle"
+                  class="w-5 h-5 text-primary"
+                ></i>
+              </div>
+              <div>
+                <div class="font-medium">Aura AI Chat</div>
+                <p class="text-xs text-muted-foreground">
+                  Talk to your AI companion
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="wellness-card wellness-card-hover quick-pill"
+              onclick="window.location.href='chat(friend).html'"
+            >
+              <div class="quick-pill-icon">
+                <i
+                  data-lucide="message-circle"
+                  class="w-5 h-5 "
+                ></i>
+              </div>
+              <div>
+                <div class="font-medium "onclick="window.location.href='chat(friend).html'">Chat With Friend</div>
+                <p class="text-xs text-muted-foreground">
+                 comuunicate with friends
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="wellness-card wellness-card-hover quick-pill"
+              onclick="window.location.href='resources.html'"
+            >
+              <div class="quick-pill-icon">
+                <i data-lucide="book-open" class="w-5 h-5 text-accent"></i>
+              </div>
+              <div>
+                <div class="font-medium">Self-help Library</div>
+                <p class="text-xs text-muted-foreground">
+                  Exercises, tools & guides
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MAIN GRID -->
+        <div class="grid lg:grid-cols-3 gap-8">
+          <!-- LEFT: wellness journey + recent activities -->
+          <div class="lg:col-span-2 space-y-6">
+            <!-- Questionnaire banner (JS toggles visibility) -->
+            <div
+              id="questionnaire-card"
+              class="wellness-card bg-gradient-calm text-white"
+              style="display: none;"
+            >
+              <div
+                class="card-content flex items-center justify-between flex-wrap gap-4"
+              >
+                <div>
+                  <h3
+                    class="card-title text-lg flex items-center gap-2"
+                  >
+                    <i
+                      data-lucide="clipboard-check"
+                      class="w-5 h-5"
+                    ></i>
+                    Ready for your check-in?
+                  </h3>
+                  <p class="opacity-90 text-sm mt-1">
+                    Take a few moments for your weekly wellness questionnaire.
+                  </p>
+                </div>
+                <button class="btn cta" onclick="startQuestionnaire()">
+                  Start Now
+                </button>
+              </div>
+            </div>
+
+            <!-- Your Wellness Journey -->
+            <div class="wellness-card">
+              <div class="card-header">
+                <div class="flex items-center justify-between">
+                  <h3
+                    class="card-title flex items-center gap-2"
+                  >
+                    <i
+                      data-lucide="trending-up"
+                      class="w-5 h-5 text-wellness"
+                    ></i>
+                    Your Wellness Journey
+                  </h3>
+                  <span class="text-sm text-muted-foreground"
+                    >This week</span
+                  >
+                </div>
+              </div>
+              <div class="card-content space-y-6">
+                <div class="space-y-4">
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span>Mood Tracking</span
+                      ><span id="mood-progress-label">85%</span>
+                    </div>
+                    <div class="progress">
+                      <div
+                        id="mood-progress"
+                        class="progress-bar"
+                        style="width: 85%;"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span>AI Chat Sessions</span
+                      ><span id="chat-progress-label">12/15</span>
+                    </div>
+                    <div class="progress">
+                      <div
+                        id="chat-progress"
+                        class="progress-bar"
+                        style="width: 80%;"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span>Wellness Activities</span
+                      ><span id="activity-progress-label">7/10</span>
+                    </div>
+                    <div class="progress">
+                      <div
+                        id="activity-progress"
+                        class="progress-bar"
+                        style="width: 70%;"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="grid grid-cols-3 gap-4 pt-4 border-t"
+                  style="border-color: var(--border);"
+                >
+                  <div class="text-center">
+                    <div
+                      id="wellness-score"
+                      class="text-2xl font-bold text-wellness"
+                    >
+                      85
+                    </div>
+                    <div class="text-xs text-muted-foreground">
+                      Wellness Score
+                    </div>
+                  </div>
+                  <div class="text-center">
+                    <div
+                      id="total-sessions"
+                      class="text-2xl font-bold text-primary"
+                    >
+                      12
+                    </div>
+                    <div class="text-xs text-muted-foreground">
+                      Sessions
+                    </div>
+                  </div>
+                  <div class="text-center">
+                    <div
+                      id="day-streak"
+                      class="text-2xl font-bold text-accent"
+                    >
+                      7
+                    </div>
+                    <div class="text-xs text-muted-foreground">
+                      Day Streak
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Activities -->
+            <div class="wellness-card">
+              <div class="card-header">
+                <h3
+                  class="card-title flex items-center gap-2"
+                >
+                  <i
+                    data-lucide="activity"
+                    class="w-5 h-5 text-primary"
+                  ></i
+                  >Recent Activities
+                </h3>
+              </div>
+              <div class="card-content">
+                <div class="space-y-4" id="recent-activities"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: mood, sessions, achievements, resources -->
+          <div class="space-y-6">
+            <!-- Daily mood -->
+            <div class="wellness-card">
+              <div class="card-header text-center">
+                <h3 class="card-title text-lg">How are you feeling?</h3>
+                <p class="card-description">
+                  Track your daily mood in a few taps.
+                </p>
+              </div>
+              <div class="card-content">
+                <div
+                  class="flex justify-around mb-4"
+                  id="mood-selector"
+                >
+                  <button class="mood-btn" data-mood="1">😢</button>
+                  <button class="mood-btn" data-mood="2">😐</button>
+                  <button class="mood-btn" data-mood="3">🙂</button>
+                  <button class="mood-btn" data-mood="4">😊</button>
+                  <button class="mood-btn" data-mood="5">😄</button>
+                </div>
+                <button
+                  class="btn btn-wellness w-full"
+                  onclick="saveMood()"
+                >
+                  Save Today's Mood
+                </button>
+              </div>
+            </div>
+
+            <!-- Upcoming sessions -->
+            <div class="wellness-card">
+              <div class="card-header">
+                <h3
+                  class="card-title flex items-center gap-2"
+                >
+                  <i
+                    data-lucide="calendar"
+                    class="w-5 h-5 text-warning"
+                  ></i
+                  >Upcoming Sessions
+                </h3>
+              </div>
+              <div
+                id="upcoming-sessions-content"
+                class="card-content space-y-4"
+              >
+                <div
+                  id="upcoming-sessions-list"
+                  class="space-y-3"
+                ></div>
+                <button
+                  class="btn btn-outline w-full"
+                  onclick="openBookingModal()"
+                >
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  Book New Session
+                </button>
+              </div>
+            </div>
+
+            <!-- Achievement -->
+            <div
+              class="wellness-card bg-gradient-wellness text-wellness-foreground"
+            >
+              <div class="card-header text-center">
+                <i
+                  data-lucide="star"
+                  class="w-8 h-8 mx-auto mb-2"
+                ></i>
+                <h3 class="card-title text-lg">
+                  Achievement Unlocked!
+                </h3>
+              </div>
+              <div class="card-content text-center">
+                <p class="text-wellness-foreground opacity-90">
+                  7-day wellness streak! Keep up the great work. 🌟
+                </p>
+              </div>
+            </div>
+
+            <!-- Resources / Peer Support / Govt (MANAS) -->
+            <div class="space-y-4">
+              <div class="wellness-card">
+                <div
+                  class="card-content flex items-center justify-between flex-wrap gap-4"
+                >
+                  <div>
+                    <h3
+                      class="card-title text-lg flex items-center gap-2"
+                    >
+                      <i
+                        data-lucide="compass"
+                        class="w-5 h-5 text-accent"
+                      ></i
+                      >Explore resources
+                    </h3>
+                    <p class="text-muted-foreground text-sm mt-1">
+                      Find exercises and guides.
+                    </p>
+                  </div>
+                  <a
+                    href="resources.html"
+                    class="btn btn-wellness"
+                    style="text-decoration: none;"
+                    >View</a
+                  >
+                </div>
+              </div>
+
+              <div class="wellness-card">
+                <div
+                  class="card-content flex items-center justify-between flex-wrap gap-4"
+                >
+                  <div>
+                    <h3
+                      class="card-title text-lg flex items-center gap-2"
+                    >
+                      <i
+                        data-lucide="users"
+                        class="w-5 h-5 text-primary"
+                      ></i
+                      >Peer support
+                    </h3>
+                    <p class="text-muted-foreground text-sm mt-1">
+                      Connect with others.
+                    </p>
+                  </div>
+                  <a
+                    href="community.html"
+                    class="btn btn-calm"
+                    style="text-decoration: none;"
+                    >Join</a
+                  >
+                </div>
+              </div>
+
+              <div class="wellness-card">
+                <div
+                  class="card-content flex items-center justify-between flex-wrap gap-4"
+                >
+                  <div>
+                    <h3
+                      class="card-title text-lg flex items-center gap-2"
+                    >
+                      <i
+                        data-lucide="shield"
+                        class="w-5 h-5 text-secondary"
+                      ></i
+                      >Govt. Support (Manas)
+                    </h3>
+                    <p class="text-muted-foreground text-sm mt-1">
+                      Connect with national helplines.
+                    </p>
+                  </div>
+                  <a
+                    href="https://ncbmanas.gov.in/createTicket"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-secondary"
+                    style="text-decoration: none;"
+                    >Contact</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Questionnaire Modal -->
+      <div
+        id="questionnaire-modal"
+        class="modal-container fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+      >
+        <div class="modal-card wellness-card w-full max-w-lg">
+          <div
+            class="card-header flex justify-between items-center"
+          >
+            <h3 class="card-title">Weekly Wellness Check-in</h3>
+            <button
+              onclick="closeModal('questionnaire-modal')"
+              class="btn-icon"
+            >
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <div class="card-content">
+            <div class="mb-4">
+              <div
+                class="flex justify-between text-sm mb-1"
+              >
+                <span>Progress</span>
+                <span id="questionnaire-progress-text"></span>
+              </div>
+              <div class="progress">
+                <div
+                  id="questionnaire-progress-bar"
+                  class="progress-bar"
+                  style="width: 0%;"
+                ></div>
+              </div>
+            </div>
+            <div
+              id="questionnaire-content"
+              class="my-6 min-h-[150px]"
+            >
+              <h4
+                id="questionnaire-question"
+                class="text-lg font-medium mb-4"
+              ></h4>
+              <div
+                id="questionnaire-options"
+                class="space-y-3"
+              ></div>
+            </div>
+            <div
+              id="questionnaire-controls"
+              class="flex justify-between border-t pt-4"
+              style="border-color: var(--border);"
+            >
+              <button
+                id="q-prev-btn"
+                class="btn btn-outline"
+                onclick="prevQuestion()"
+              >
+                Previous
+              </button>
+              <button
+                id="q-next-btn"
+                class="btn btn-wellness"
+                onclick="nextQuestion()"
+              >
+                Next
+              </button>
+              <button
+                id="q-submit-btn"
+                class="btn btn-wellness"
+                onclick="submitQuestionnaire()"
+                style="display: none;"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking Modal -->
+      <div
+        id="booking-modal"
+        class="modal-container fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+      >
+        <div class="modal-card wellness-card w-full max-w-2xl">
+          <div
+            class="card-header flex justify-between items-center"
+          >
+            <h3 class="card-title">Schedule a Session</h3>
+            <button
+              onclick="closeModal('booking-modal')"
+              class="btn-icon"
+            >
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <div
+            class="card-content grid md:grid-cols-2 gap-8"
+          >
+            <div id="calendar-container"></div>
+            <div
+              id="time-slots-container"
+              class="space-y-4"
+            >
+              <h4
+                class="font-medium text-lg"
+                id="time-slots-title"
+              >
+                Select a time
+              </h4>
+              <div
+                id="time-slots-grid"
+                class="grid grid-cols-2 gap-3"
+              ></div>
+            </div>
+          </div>
+          <div
+            class="card-footer p-6 border-t flex justify-end"
+            style="border-color: var(--border);"
+          >
+            <button
+              class="btn btn-wellness"
+              onclick="confirmBooking()"
+            >
+              Confirm Booking
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="toast-container"></div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/user-dashboard.js"></script>
+  </body>
+</html>

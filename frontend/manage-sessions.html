@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Sessions - Mind Mate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <style>
+        /* Unique Feature: AI Risk Level Styles */
+        .risk-indicator { height: 100%; width: 6px; position: absolute; left: 0; top: 0; border-radius: var(--radius) 0 0 var(--radius); }
+        .risk-high { background-color: var(--destructive); box-shadow: 0 0 10px rgba(var(--destructive-rgb), 0.4); }
+        .risk-medium { background-color: var(--warning); }
+        .risk-low { background-color: var(--wellness); }
+        
+        /* Modal Transitions */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+            opacity: 0; pointer-events: none; transition: all 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: var(--card); color: var(--foreground); padding: 2rem; border-radius: 1rem;
+            width: 100%; max-width: 500px; transform: scale(0.95); transition: all 0.3s ease;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-gradient-soft">
+        <header class="bg-card border-b sticky top-0 z-10">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('admin-dashboard.html')">
+                    <div class="p-2 bg-primary/10 rounded-full">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-primary"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight">Session Command</h1>
+                        <p class="text-xs text-muted-foreground">Admin Control Panel</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button class="btn btn-outline" onclick="toggleAIAnalysis()">
+                        <i data-lucide="brain" class="w-4 h-4"></i> AI Sentinel <span id="ai-status-badge" class="ml-2 px-2 py-0.5 text-[10px] bg-green-100 text-green-700 rounded-full">Active</span>
+                    </button>
+                    <button class="btn btn-primary shadow-primary" onclick="openModal('schedule-modal')">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Schedule New
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div class="wellness-card p-4 flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600"><i data-lucide="calendar-clock" class="w-6 h-6"></i></div>
+                    <div><p class="text-sm text-muted-foreground">Upcoming</p><h3 class="text-2xl font-bold" id="stat-upcoming">0</h3></div>
+                </div>
+                <div class="wellness-card p-4 flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-red-100 text-red-600 animate-pulse"><i data-lucide="alert-circle" class="w-6 h-6"></i></div>
+                    <div><p class="text-sm text-muted-foreground">High Risk Alerts</p><h3 class="text-2xl font-bold text-destructive" id="stat-risk">0</h3></div>
+                </div>
+                <div class="wellness-card p-4 flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600"><i data-lucide="check-circle-2" class="w-6 h-6"></i></div>
+                    <div><p class="text-sm text-muted-foreground">Completed Today</p><h3 class="text-2xl font-bold" id="stat-completed">0</h3></div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mb-6 border-b overflow-x-auto" style="border-color: var(--border)">
+                <button class="btn btn-ghost border-b-2 border-primary rounded-none px-4 py-2 text-primary font-medium transition-all" id="tab-upcoming" onclick="filterSessions('upcoming')">Upcoming</button>
+                <button class="btn btn-ghost border-b-2 border-transparent rounded-none px-4 py-2 text-muted-foreground hover:text-foreground transition-all" id="tab-completed" onclick="filterSessions('completed')">Completed</button>
+                <button class="btn btn-ghost border-b-2 border-transparent rounded-none px-4 py-2 text-muted-foreground hover:text-foreground transition-all" id="tab-cancelled" onclick="filterSessions('cancelled')">Cancelled</button>
+            </div>
+
+            <div class="grid gap-4" id="sessions-container">
+                </div>
+        </div>
+    </div>
+
+    <div id="schedule-modal" class="modal-overlay">
+        <div class="modal-content relative">
+            <button onclick="closeModal('schedule-modal')" class="absolute top-4 right-4 text-muted-foreground hover:text-foreground"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h2 class="text-xl font-bold mb-4">Schedule New Session</h2>
+            <form id="schedule-form" onsubmit="handleScheduleSubmit(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="label">Student Name</label>
+                        <input type="text" name="student" class="input" placeholder="e.g. John Doe" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Date</label>
+                            <input type="date" name="date" class="input" required>
+                        </div>
+                        <div>
+                            <label class="label">Time</label>
+                            <input type="time" name="time" class="input" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label">Session Type</label>
+                        <select name="type" class="input">
+                            <option value="Video Call">Video Call</option>
+                            <option value="Voice Call">Voice Call</option>
+                            <option value="Chat">Chat Therapy</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Topic/Concern</label>
+                        <input type="text" name="topic" class="input" placeholder="e.g. Exam Anxiety" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full mt-2">Confirm Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="ai-modal" class="modal-overlay">
+        <div class="modal-content relative border-l-4 border-primary">
+            <button onclick="closeModal('ai-modal')" class="absolute top-4 right-4 text-muted-foreground hover:text-foreground"><i data-lucide="x" class="w-5 h-5"></i></button>
+            
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-primary/10 p-2 rounded-lg"><i data-lucide="brain" class="w-6 h-6 text-primary"></i></div>
+                <div>
+                    <h2 class="text-lg font-bold">MindMate Sentinel Analysis</h2>
+                    <p class="text-xs text-muted-foreground">Pre-session risk assessment</p>
+                </div>
+            </div>
+
+            <div class="bg-muted/50 p-4 rounded-lg mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium">Risk Score</span>
+                    <span class="text-xl font-bold" id="modal-risk-score">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                    <div id="modal-risk-bar" class="bg-primary h-2.5 rounded-full" style="width: 45%"></div>
+                </div>
+            </div>
+
+            <h3 class="text-sm font-bold mb-2">Detected Risk Factors:</h3>
+            <div id="modal-risk-factors" class="flex flex-wrap gap-2 mb-4">
+                </div>
+
+            <div class="bg-yellow-50 text-yellow-800 p-3 rounded text-sm border border-yellow-200">
+                <i data-lucide="lightbulb" class="w-3 h-3 inline mr-1"></i>
+                <strong>Recommendation:</strong> <span id="modal-recommendation">...</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/manage-sessions.js"></script>
+</body>
+</html>

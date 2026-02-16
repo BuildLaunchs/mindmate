@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Mind Mate  </title>
+    <meta name="description" content="Create your MindCare Youth account to start your mental wellness journey." />
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <link rel="stylesheet" href="styles/main.css">
+    <style>
+      .form-card-animation {
+        opacity: 0;
+        transform: scale(0.98);
+        animation: scaleIn 0.5s ease-out forwards;
+      }
+      @keyframes scaleIn {
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="min-h-screen bg-gradient-soft flex items-center justify-center" style="padding: 1rem;">
+      <div class="w-full max-w-lg space-y-6">
+        <div class="text-center">
+          <a href="index.html" class="inline-flex items-center gap-2" style="text-decoration: none;">
+            <i data-lucide="brain" class="w-8 h-8 text-primary"></i>
+            <span class="text-2xl font-bold text-foreground">Mind Mate</span>
+          </a>
+        </div>
+
+        <div class="wellness-card form-card-animation">
+          <div class="card-header text-center space-y-2">
+            <h1 class="text-2xl font-bold">Join MindCare Youth</h1>
+            <p class="card-description">
+              Create your account to start your mental wellness journey
+            </p>
+          </div>
+          <div class="card-content space-y-6">
+            <form id="signupForm" class="space-y-4">
+              <div class="space-y-3">
+                <label class="label">Account Type</label>
+                <div class="radio-group">
+                  <div class="radio-item">
+                    <input type="radio" id="signup-user" name="role" value="user" class="radio-input" checked>
+                    <label for="signup-user" class="radio-label">
+                      <i data-lucide="user" class="w-4 h-4"></i>
+                      User
+                    </label>
+                  </div>
+                  <div class="radio-item">
+                    <input type="radio" id="signup-admin" name="role" value="admin" class="radio-input">
+                    <label for="signup-admin" class="radio-label">
+                      <i data-lucide="shield" class="w-4 h-4"></i>
+                      Admin
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                  <label for="firstName" class="label">First Name</label>
+                  <input type="text" id="firstName" class="input" placeholder="First name" required />
+                </div>
+                <div class="form-group">
+                  <label for="lastName" class="label">Last Name</label>
+                  <input type="text" id="lastName" class="input" placeholder="Last name" required />
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-3 gap-4">
+                <div class="col-span-2 form-group">
+                  <label for="signup-email" class="label">Email</label>
+                  <input type="email" id="signup-email" class="input" placeholder="Enter your email" required />
+                </div>
+                <div class="form-group">
+                  <label for="age" class="label">Age</label>
+                  <input type="number" id="age" class="input" min="13" max="25" placeholder="Age" required />
+                </div>
+              </div>
+
+              <div id="user-specific-fields" class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                  <label for="contactNumber" class="label">Contact Number</label>
+                  <input type="tel" id="contactNumber" class="input" placeholder="Your mobile number" pattern="[0-9]{10}" />
+                </div>
+                <div class="form-group">
+                  <label for="emergencyContact" class="label">Emergency Contact</label>
+                  <input type="tel" id="emergencyContact" class="input" placeholder="Parent/Guardian number" pattern="[0-9]{10}" />
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <div class="form-group">
+                  <label for="signup-password" class="label">Password</label>
+                  <div class="relative">
+                    <input type="password" id="signup-password" class="input pr-10" placeholder="Create a password" required />
+                    <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signup-password')">
+                      <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                  <div id="password-strength-container" class="mt-2"></div>
+                </div>
+                <div class="form-group">
+                  <label for="confirmPassword" class="label">Confirm Password</label>
+                  <div class="relative">
+                    <input type="password" id="confirmPassword" class="input pr-10" placeholder="Confirm your password" required />
+                    <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirmPassword')">
+                      <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="terms" class="checkbox" required>
+                <label for="terms" class="text-sm text-muted-foreground">
+                  I agree to the
+                  <a href="./terms.html" class="text-primary">Terms of Service</a>
+                  and
+                  <a href="./privacy.html" class="text-primary">Privacy Policy</a>
+                </label>
+              </div>
+
+              <button type="submit" id="create-account-btn" class="btn btn-wellness w-full">
+                Create Account
+              </button>
+            </form>
+
+            <div class="text-center text-sm text-muted-foreground">
+              Already have an account?
+              <a href="login.html" class="text-primary">
+                Sign in here
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center text-sm text-muted-foreground">
+          <a href="index.html" class="text-primary">
+            ← Back to home
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/signup.js"></script>
+  </body>
+</html>

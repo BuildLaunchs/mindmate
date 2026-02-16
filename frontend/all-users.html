@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Users - Mind Mate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <style>
+        .view-toggle.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .cursor-pointer { cursor: pointer; }
+        .sort-icon { width: 12px; height: 12px; display: inline-block; margin-left: 4px; }
+        
+        /* Grid View Styles */
+        .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        .user-card-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .user-card-item:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--primary); }
+        .user-card-item .risk-badge { position: absolute; top: 1rem; right: 1rem; }
+        
+        /* AI Modal Specifics */
+        .ai-analysis-content { min-height: 200px; }
+        .ai-typing-effect { border-right: 2px solid var(--primary); animation: blink 0.75s step-end infinite; }
+        @keyframes blink { 50% { border-color: transparent; } }
+        .insight-box { background: var(--muted); padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; border-left: 4px solid var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-gradient-soft">
+        <header class="bg-card border-b sticky top-0 z-10">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('admin-dashboard.html')">
+                    <i data-lucide="arrow-left" class="w-6 h-6 text-muted-foreground"></i>
+                    <h1 class="text-xl font-bold">User Directory</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex bg-muted rounded-lg p-1 border">
+                        <button class="p-2 rounded-md text-sm view-toggle active" id="view-list" onclick="toggleView('list')"><i data-lucide="list" class="w-4 h-4"></i></button>
+                        <button class="p-2 rounded-md text-sm view-toggle" id="view-grid" onclick="toggleView('grid')"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
+                    </div>
+                    <span class="text-sm font-medium bg-primary/10 text-primary px-3 py-1 rounded-full" id="total-users-count">Loading...</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="container mx-auto px-4 py-8">
+            <div class="wellness-card p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div class="relative w-full md:w-96">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
+                    <input type="text" id="user-search" placeholder="Search users..." class="input pl-10" onkeyup="handleSearch()">
+                </div>
+                <div class="flex gap-2 w-full md:w-auto overflow-x-auto">
+                    <select class="input w-auto" id="role-filter" onchange="handleSearch()">
+                        <option value="all">All Roles</option>
+                        <option value="student">Student</option>
+                        <option value="counselor">Counselor</option>
+                    </select>
+                    <select class="input w-auto" id="risk-filter" onchange="handleSearch()">
+                        <option value="all">All Risks</option>
+                        <option value="high">High Risk</option>
+                        <option value="medium">Medium Risk</option>
+                        <option value="low">Low Risk</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="showToast('Exporting data...', 'success')">
+                        <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden sm:inline">Export</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="users-container" class="transition-all duration-300">
+                <div class="wellness-card overflow-hidden" id="table-view">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-muted border-b">
+                                    <th class="p-4 font-semibold text-sm text-muted-foreground cursor-pointer hover:text-foreground" onclick="sortUsers('name')">User <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+                                    <th class="p-4 font-semibold text-sm text-muted-foreground">Role</th>
+                                    <th class="p-4 font-semibold text-sm text-muted-foreground">Status</th>
+                                    <th class="p-4 font-semibold text-sm text-muted-foreground cursor-pointer hover:text-foreground" onclick="sortUsers('wellnessScore')">Wellness <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+                                    <th class="p-4 font-semibold text-sm text-muted-foreground">Risk Level</th>
+                                    <th class="p-4 font-semibold text-sm text-muted-foreground text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 border-t flex justify-between items-center bg-card">
+                        <span class="text-sm text-muted-foreground" id="pagination-info">Showing all users</span>
+                        <div class="flex gap-2">
+                            <button class="btn btn-sm btn-outline" disabled>Previous</button>
+                            <button class="btn btn-sm btn-outline" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="user-grid hidden" id="grid-view"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ai-modal" class="modal-container fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="modal-card bg-card w-full max-w-lg rounded-2xl shadow-2xl border border-primary/20 p-0 overflow-hidden">
+            <div class="bg-gradient-primary p-6 text-white flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                        <h3 class="text-lg font-bold">Mind Mate AI Insight</h3>
+                    </div>
+                    <p class="text-white/80 text-sm">Analyzing wellness patterns & risk factors</p>
+                </div>
+                <button onclick="closeModal('ai-modal')" class="text-white/70 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl" id="ai-user-avatar">?</div>
+                    <div>
+                        <h4 class="font-bold text-lg" id="ai-user-name">Loading...</h4>
+                        <div class="text-sm text-muted-foreground" id="ai-user-email">...</div>
+                    </div>
+                    <div class="ml-auto text-right">
+                        <div class="text-xs text-muted-foreground uppercase tracking-wider">Current Score</div>
+                        <div class="font-bold text-2xl" id="ai-user-score">--</div>
+                    </div>
+                </div>
+
+                <div class="space-y-4 ai-analysis-content">
+                    <div id="ai-loading" class="flex flex-col items-center justify-center py-8">
+                        <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <p class="text-sm text-muted-foreground animate-pulse">Scanning behavioral data...</p>
+                    </div>
+                    <div id="ai-results" class="hidden">
+                        <div class="insight-box">
+                            <h5 class="font-semibold text-primary mb-2 flex items-center gap-2"><i data-lucide="microscope" class="w-4 h-4"></i> Pattern Detection</h5>
+                            <p class="text-sm text-foreground leading-relaxed" id="ai-pattern-text"></p>
+                        </div>
+                        <div class="insight-box" style="border-left-color: var(--wellness);">
+                            <h5 class="font-semibold text-wellness mb-2 flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Recommended Intervention</h5>
+                            <p class="text-sm text-foreground leading-relaxed" id="ai-action-text"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t flex justify-end gap-2">
+                    <button class="btn btn-outline" onclick="closeModal('ai-modal')">Close</button>
+                    <button class="btn btn-primary" onclick="showToast('Report generated & sent to email', 'success')">
+                        <i data-lucide="send" class="w-4 h-4"></i> Send Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <script src="scripts/main.js"></script>
+    <script src="scripts/all-users.js"></script>
+</body>
+</html>

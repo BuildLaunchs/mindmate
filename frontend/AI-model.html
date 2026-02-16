@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Aura AI Avatar</title>
+
+<script type="module"
+  src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js">
+</script>
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(180deg, #f7f9fc, #eef2f7);
+  color: #222;
+  overflow: hidden;
+}
+
+/* ===== NAVBAR ===== */
+.navbar {
+  height: 60px;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.navbar .title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.back-btn {
+  text-decoration: none;
+  color: #333;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #eaeef5;
+  transition: background 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #dfe5f0;
+}
+
+/* ===== AVATAR ===== */
+.avatar-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+model-viewer {
+  width: 350px;
+  height: 100%;
+}
+
+/* ===== STATUS ===== */
+.status {
+  position: absolute;
+  bottom: 100px;
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  color: #555;
+}
+
+/* ===== CONTROLS ===== */
+.controls {
+  height: 90px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255,255,255,0.95);
+  border-top: 1px solid #ddd;
+}
+
+/* ===== MIC BUTTON ===== */
+.mic-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #ff5f9e, #ff2f7d);
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(255, 47, 125, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mic-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 15px 35px rgba(255, 47, 125, 0.6);
+}
+
+.mic-btn.listening {
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 8px rgba(255,47,125,0.4); }
+  50% { box-shadow: 0 0 35px rgba(255,47,125,0.9); }
+  100% { box-shadow: 0 0 8px rgba(255,47,125,0.4); }
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <div class="title">Aura AI</div>
+  <a href="chat-bot.html" class="back-btn">← Back</a>
+</div>
+
+<!-- AVATAR -->
+<div class="avatar-wrapper">
+  <model-viewer
+    id="avatar"
+    src="model.glb"
+    camera-controls
+    exposure="1"
+    shadow-intensity="1"
+    environment-image="neutral">
+  </model-viewer>
+</div>
+
+<div class="status" id="status">Tap the mic to talk</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="mic-btn" id="micBtn" onclick="startMic()">🎤</button>
+</div>
+
+<script>
+const micBtn = document.getElementById("micBtn");
+const statusEl = document.getElementById("status");
+
+let sessionId = null;
+const userId = "user_2";
+
+/* ===== FEMALE VOICE ===== */
+function speak(text) {
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  const voices = speechSynthesis.getVoices();
+  const femaleVoice = voices.find(v =>
+    v.name.toLowerCase().includes("female") ||
+    v.name.toLowerCase().includes("zira") ||
+    v.name.toLowerCase().includes("samantha")
+  );
+
+  if (femaleVoice) utterance.voice = femaleVoice;
+  utterance.pitch = 1.1;
+
+  speechSynthesis.speak(utterance);
+}
+
+/* ===== BACKEND ===== */
+async function sendToBackend(message) {
+  statusEl.textContent = "Thinking...";
+  try {
+    const res = await fetch("http://localhost:5000/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        user_id: userId,
+        session_id: sessionId
+      })
+    });
+
+    const data = await res.json();
+    sessionId = data.session_id;
+
+    speak(data.reply);
+    statusEl.textContent = "Aura AI is speaking";
+
+  } catch {
+    statusEl.textContent = "Server error";
+  }
+}
+
+/* ===== MIC ===== */
+function startMic() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Speech recognition not supported");
+    return;
+  }
+
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "en-US";
+
+  micBtn.classList.add("listening");
+  statusEl.textContent = "Listening...";
+
+  recognition.onresult = (e) => {
+    micBtn.classList.remove("listening");
+    sendToBackend(e.results[0][0].transcript);
+  };
+
+  recognition.onerror = () => {
+    micBtn.classList.remove("listening");
+    statusEl.textContent = "Mic error";
+  };
+
+  recognition.start();
+}
+
+speechSynthesis.onvoiceschanged = () => {};
+</script>
+
+</body>
+</html>

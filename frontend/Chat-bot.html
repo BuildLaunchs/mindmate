@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura AI Chat</title>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="website icon" href="/frontend/images/logo.png">
+
+    <script>
+      // 1. CHECK AUTHENTICATION IMMEDIATELY
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+      if (!currentUser || !currentUser.user_id) {
+        window.location.href = 'login.html';
+      }
+
+      try {
+        const savedTheme = JSON.parse(localStorage.getItem('userTheme')) || { mode: 'light', accentHue: '238' };
+        if (savedTheme.mode === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+        const root = document.documentElement;
+        root.style.setProperty('--primary', `hsl(${savedTheme.accentHue}, 57%, 58%)`);
+        root.style.setProperty('--primary-glow', `hsl(${savedTheme.accentHue}, 57%, 70%)`);
+      } catch (e) {
+        console.error("Failed to load user theme.", e);
+      }
+    </script>
+
+    <style>
+      /* --- VISUAL STYLES --- */
+      body {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        background: linear-gradient(-45deg, #f3f4f6, #e0e7ff, #f0fdf4, #fff1f2);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        height: 100vh;
+        overflow: hidden; 
+      }
+      
+      html.dark body {
+        background: linear-gradient(-45deg, #0f172a, #1e1b4b, #064e3b, #312e81);
+        background-size: 400% 400%;
+        color: #e2e8f0;
+      }
+
+      @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      
+      html.dark .glass-panel {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .user-message {
+        background: var(--primary);
+        color: white;
+        border-bottom-right-radius: 4px;
+        box-shadow: 0 4px 15px -3px var(--primary-glow);
+      }
+
+      .ai-message-bubble {
+        background: white;
+        color: #1f2937;
+        border-bottom-left-radius: 4px;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+      }
+      
+      html.dark .ai-message-bubble {
+        background: #1e293b;
+        color: #e2e8f0;
+        border-color: #334155;
+      }
+
+      .message-enter {
+        animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      @keyframes slideIn {
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .mic-button { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+      .mic-button.listening {
+        animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        background-color: #ef4444 !important;
+      }
+      
+      @keyframes pulse-ring {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      }
+
+      #ai-avatar-video { transition: transform 0.2s ease; }
+      #ai-avatar-video.speaking { animation: pulse-avatar 0.8s ease-in-out infinite; }
+      @keyframes pulse-avatar {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0px var(--primary-glow); }
+        50% { transform: scale(1.05); box-shadow: 0 0 20px 5px var(--primary-glow); }
+      }
+
+      #chat-messages::-webkit-scrollbar, #session-list::-webkit-scrollbar { width: 5px; }
+      #chat-messages::-webkit-scrollbar-track, #session-list::-webkit-scrollbar-track { background: transparent; }
+      #chat-messages::-webkit-scrollbar-thumb, #session-list::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
+      
+      #tools-menu { transform-origin: bottom left; transition: all 0.2s ease-out; }
+      #tools-menu.hidden { display: none; }
+      #tools-menu:not(.hidden) { animation: scaleIn 0.2s ease-out; }
+      @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+      .theme-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+      .theme-toggle-input { opacity: 0; width: 0; height: 0; }
+      .theme-toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+      .theme-toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+      .theme-toggle-input:checked + .theme-toggle-slider { background-color: #6366f1; }
+      .theme-toggle-input:checked + .theme-toggle-slider:before { transform: translateX(20px); }
+      html.dark .theme-toggle-slider { background-color: #334155; }
+    </style>
+</head>
+<body class="antialiased text-foreground selection:bg-indigo-100 selection:text-indigo-900 overflow-hidden">
+
+    <div class="flex h-screen w-full relative z-10">
+        <!-- SIDEBAR -->
+        <aside id="history-sidebar" class="w-0 md:w-72 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-white/20 dark:border-white/5 transition-all duration-300 flex flex-col absolute md:relative z-30 h-full shadow-2xl md:shadow-none overflow-hidden">
+            <div class="p-4 flex-shrink-0">
+                <button id="new-chat-btn" class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl transition-all shadow-md font-medium text-sm group">
+                    <i data-lucide="plus" class="w-4 h-4 group-hover:rotate-90 transition-transform"></i>
+                    <span>New Chat</span>
+                </button>
+            </div>
+            <div class="px-4 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-shrink-0">Recent Conversations</div>
+            <div class="flex-1 overflow-y-auto px-3 py-2 space-y-1" id="session-list">
+                <div class="flex items-center justify-center h-20"><span class="loading loading-spinner text-indigo-500"></span></div>
+            </div>
+            
+            <!-- LOGOUT BUTTON -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+                <button id="logout-btn" class="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Sign Out</span>
+                </button>
+                <div class="md:hidden mt-2">
+                    <button id="close-sidebar" class="text-sm text-gray-500 w-full text-center hover:text-indigo-600">Close Menu</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CHAT AREA -->
+        <div id="chat-container" class="flex-1 flex flex-col h-full relative min-w-0">
+            <header class="w-full px-4 pt-4 pb-2 flex-shrink-0 z-20">
+                <div class="glass-panel rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
+                    <button id="toggle-sidebar" class="p-2 mr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 md:hidden transition-colors"><i data-lucide="menu" class="w-5 h-5 text-muted-foreground"></i></button>
+                    <a href="./user-dashboard.html" class="flex items-center space-x-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors bg-white/50 hover:bg-white/80 dark:bg-slate-800/50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl"><i data-lucide="layout-dashboard" class="w-4 h-4"></i><span class="hidden sm:inline">Dashboard</span></a>
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">Aura AI</h1>
+                        </div>
+                        <p class="hidden sm:block text-[10px] text-muted-foreground font-medium tracking-widest uppercase mt-0.5">Mental Health Companion</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="sun" class="w-4 h-4 text-muted-foreground"></i>
+                        <label class="theme-toggle"><input type="checkbox" id="theme-mode-toggle" class="theme-toggle-input" /><span class="theme-toggle-slider"></span></label>
+                        <i data-lucide="moon" class="w-4 h-4 text-muted-foreground"></i>
+                    </div>
+                </div>
+            </header>
+
+            <main id="chat-messages" class="flex-1 px-4 sm:px-8 overflow-y-auto flex flex-col space-y-6 py-6 scroll-smooth"></main>
+
+            <footer class="w-full px-4 pb-6 pt-2 flex-shrink-0 z-20">
+                <div class="glass-panel rounded-[24px] p-2 shadow-lg flex items-end gap-2 max-w-3xl mx-auto transition-all duration-300 focus-within:shadow-xl focus-within:ring-1 focus-within:ring-indigo-500/30">
+                    <div class="relative">
+                        <button id="tools-button" class="p-3 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-full transition-all duration-300 transform hover:rotate-90"><i data-lucide="plus" class="w-6 h-6"></i></button>
+                        <div id="tools-menu" class="hidden absolute bottom-full left-0 mb-4 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 w-56 overflow-hidden z-30">
+                            <div class="p-2 space-y-1">
+                                <button id="start-voice" class="w-full flex items-center space-x-3 px-3 py-2.5 text-left rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 group transition-colors">
+                                    <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform"><i data-lucide="mic" class="w-4 h-4"></i></div>
+                                    <span class="font-medium text-sm text-gray-700 dark:text-gray-200">Voice Mode</span>
+                                </button>
+                                <button id="start-video" class="w-full flex items-center space-x-3 px-3 py-2.5 text-left rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 group transition-colors">
+                                    <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform"><i data-lucide="video" class="w-4 h-4"></i></div>
+                                    <span class="font-medium text-sm text-gray-700 dark:text-gray-200">Video Call</span>
+                                </button>
+                                <button id="start-ai" class="w-full flex items-center space-x-3 px-3 py-2.5 text-left rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 group transition-colors">
+                                    <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                                    <span class="font-medium text-sm text-gray-700 dark:text-gray-200">AI Call</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <textarea id="chat-input" placeholder="Type a message to Aura..." rows="1" class="w-full px-3 py-3 bg-transparent focus:outline-none resize-none text-foreground text-[15px] leading-relaxed max-h-32 placeholder:text-muted-foreground/70"></textarea>
+                    <button id="chat-send-button" class="mb-0.5 bg-indigo-600 text-white rounded-full p-3 shadow-md hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 focus:outline-none disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none transform active:scale-95"><i data-lucide="arrow-up" class="w-5 h-5 font-bold"></i></button>
+                </div>
+                <div class="text-center mt-2"><p class="text-[10px] text-muted-foreground/60">Aura AI can make mistakes. Consider checking important information.</p></div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- VOICE MODAL -->
+    <div id="voice-modal" class="hidden fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4 transition-opacity duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl p-10 text-center flex flex-col items-center max-w-sm w-full border border-white/20 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-teal-500"></div>
+            <div class="w-24 h-24 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50/50 dark:ring-green-900/10"><i data-lucide="headphones" class="w-10 h-10 text-green-600 dark:text-green-400"></i></div>
+            <h2 class="text-2xl font-bold mb-2">Voice Chat</h2>
+            <p id="mic-status" class="text-muted-foreground mb-10 h-6 text-sm font-medium">Tap microphone to speak</p>
+            <button id="mic-button" class="mic-button w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center hover:scale-105 active:scale-95 focus:outline-none"><i data-lucide="mic" class="w-8 h-8"></i></button>
+            <button class="voice-hang-up-button mt-12 flex items-center gap-2 text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/20 px-6 py-2.5 rounded-full font-semibold transition-colors text-sm"><i data-lucide="phone-off" class="w-4 h-4"></i> End Session</button>
+        </div>
+    </div>
+    
+    <!-- VIDEO MODAL -->
+    <div id="video-modal" class="hidden fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50">
+        <!-- Hidden Canvas for Snapshot Capture -->
+        <canvas id="video-canvas" class="hidden"></canvas>
+        
+        <video id="user-video" class="absolute top-6 right-6 w-40 h-56 md:w-56 md:h-72 rounded-2xl shadow-2xl border border-white/20 object-cover z-20 bg-black" autoplay muted playsinline></video>
+        
+        <div id="ai-avatar-container" class="relative w-64 h-64 md:w-80 md:h-80 mb-12 flex items-center justify-center">
+            <div class="absolute inset-0 bg-indigo-500 blur-[80px] opacity-20 animate-pulse"></div>
+            <div id="ai-avatar-video" class="w-full h-full rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-2xl">
+                <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden relative">
+                     <div class="w-32 h-32 bg-indigo-400/30 blur-2xl rounded-full absolute top-10 left-10"></div>
+                     <div class="w-32 h-32 bg-purple-400/30 blur-2xl rounded-full absolute bottom-10 right-10"></div>
+                     <i data-lucide="brain" class="w-24 h-24 text-white/90 relative z-10"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emotion Status Display -->
+        <p id="emotion-status" class="absolute top-6 left-6 text-white/60 bg-black/40 px-3 py-1 rounded-full text-xs backdrop-blur-md hidden md:block">
+            Initializing camera...
+        </p>
+
+        <p id="video-mic-status" class="text-white/80 bg-white/10 backdrop-blur-md border border-white/10 px-6 py-2 rounded-full text-sm font-medium h-10 mb-16 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-green-500"></span> Connected
+        </p>
+        
+        <div class="absolute bottom-10 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-2 flex items-center space-x-4">
+            <button id="video-mic-button" class="mic-button w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all">
+                <i data-lucide="mic" class="w-6 h-6"></i>
+            </button>
+            <button id="video-hang-up-button" class="w-14 h-14 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all shadow-lg shadow-red-900/20">
+                <i data-lucide="phone-off" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </div>
+   
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // --- UI ELEMENT REFERENCES ---
+            const chatInput = document.getElementById('chat-input');
+            const chatSendButton = document.getElementById('chat-send-button');
+            const chatMessages = document.getElementById('chat-messages');
+            const toolsButton = document.getElementById('tools-button');
+            const toolsMenu = document.getElementById('tools-menu');
+            
+            // Sidebar Refs
+            const sidebar = document.getElementById('history-sidebar');
+            const sessionList = document.getElementById('session-list');
+            const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+            const closeSidebarBtn = document.getElementById('close-sidebar');
+            const newChatBtn = document.getElementById('new-chat-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            // Voice/Video Refs
+            const voiceModal = document.getElementById('voice-modal');
+            const micButton = document.getElementById('mic-button');
+            const micStatus = document.getElementById('mic-status');
+            const videoModal = document.getElementById('video-modal');
+            const userVideo = document.getElementById('user-video');
+            const videoCanvas = document.getElementById('video-canvas');
+            const aiAvatarVideo = document.getElementById('ai-avatar-video');
+            const videoMicStatus = document.getElementById('video-mic-status');
+            const videoMicButton = document.getElementById('video-mic-button');
+            const emotionStatusText = document.getElementById('emotion-status');
+
+            // --- GLOBAL STATE ---
+            let currentMode = 'chat'; 
+            let localStream;
+            let softVoice = null;
+            let typingWrapper = null; 
+            
+            // Emotion Detection State
+            let currentDetectedEmotion = "neutral";
+            let emotionInterval = null;
+            
+            // Session State
+            let currentSessionId = localStorage.getItem('currentSessionId') || null;
+            
+            // 2. USE DYNAMIC USER ID
+            const USER_ID = currentUser.user_id; 
+            const USER_NAME = currentUser.firstName || "User";
+            const BASE_URL = 'http://127.0.0.1:5000'; 
+
+            // ---------------------------
+            // 1. SIDEBAR & SESSION LOGIC
+            // ---------------------------
+            const toggleSidebar = () => {
+                if(sidebar.classList.contains('w-0')) {
+                    sidebar.classList.remove('w-0');
+                    sidebar.classList.add('w-72', 'border-r');
+                } else {
+                    sidebar.classList.add('w-0');
+                    sidebar.classList.remove('w-72', 'border-r');
+                }
+            };
+            if(toggleSidebarBtn) toggleSidebarBtn.addEventListener('click', toggleSidebar);
+            if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+
+            // LOGOUT FUNCTIONALITY
+            if(logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('currentSessionId');
+                    window.location.href = 'index.html';
+                });
+            }
+
+            const fetchSessions = async () => {
+                try {
+                    const res = await fetch(`${BASE_URL}/sessions/${USER_ID}`);
+                    if (!res.ok) throw new Error("Server error");
+                    const sessions = await res.json();
+                    renderSessionList(sessions);
+                } catch (e) {
+                    console.error("Failed to load history", e);
+                    sessionList.innerHTML = `<p class="text-xs text-center text-red-400 p-4">Server Offline<br><span class="text-[10px] text-muted-foreground">Check backend</span></p>`;
+                }
+            };
+
+            // UPDATED: Added Delete Button
+            const renderSessionList = (sessions) => {
+                sessionList.innerHTML = '';
+                if(sessions.length === 0) {
+                     sessionList.innerHTML = `<p class="text-xs text-center text-muted-foreground p-4">No history yet.</p>`;
+                     return;
+                }
+                sessions.forEach(session => {
+                    const div = document.createElement('div');
+                    const isActive = session.session_id === currentSessionId;
+                    const activeClass = isActive 
+                        ? 'bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800' 
+                        : 'hover:bg-gray-100 dark:hover:bg-white/5 border-transparent';
+                    
+                    div.className = `p-3 rounded-xl cursor-pointer border mb-1 transition-all group ${activeClass} flex items-center justify-between group`;
+                    
+                    // Session Info
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = "flex items-center gap-3 flex-1 overflow-hidden";
+                    infoDiv.innerHTML = `
+                        <i data-lucide="message-square" class="w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-slate-400'} flex-shrink-0"></i>
+                        <div class="flex-1 overflow-hidden">
+                            <p class="text-sm font-medium truncate text-foreground">${session.preview || "New Conversation"}</p>
+                            <p class="text-[10px] text-muted-foreground">${new Date(session.timestamp).toLocaleDateString()}</p>
+                        </div>
+                    `;
+                    
+                    // Delete Button (Only visible on hover or active)
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = "opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 transition-all rounded-md hover:bg-red-50 dark:hover:bg-red-900/20";
+                    deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i>';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent loading session when clicking delete
+                        if(confirm('Are you sure you want to delete this conversation? This cannot be undone.')) {
+                            deleteSession(session.session_id);
+                        }
+                    };
+
+                    div.onclick = () => loadSession(session.session_id);
+                    div.appendChild(infoDiv);
+                    div.appendChild(deleteBtn);
+                    sessionList.appendChild(div);
+                });
+                lucide.createIcons();
+            };
+
+            // NEW: Delete Session Function
+            const deleteSession = async (sessionId) => {
+                try {
+                    const res = await fetch(`${BASE_URL}/sessions/${sessionId}`, { method: 'DELETE' });
+                    if(res.ok) {
+                        // Refresh list
+                        fetchSessions();
+                        // If we deleted the current session, start a new one
+                        if(currentSessionId === sessionId) {
+                            newChatBtn.click();
+                        }
+                    } else {
+                        alert("Failed to delete session");
+                    }
+                } catch(e) {
+                    console.error("Delete failed", e);
+                }
+            };
+
+            const loadSession = async (sessionId) => {
+                currentSessionId = sessionId;
+                localStorage.setItem('currentSessionId', sessionId);
+                chatMessages.innerHTML = ''; 
+                fetchSessions(); // To update active state UI
+                if(window.innerWidth < 768) {
+                   sidebar.classList.add('w-0');
+                   sidebar.classList.remove('w-72', 'border-r');
+                }
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = "flex justify-center p-4";
+                loadingDiv.innerHTML = `<span class="loading loading-dots text-indigo-400">Loading chat...</span>`;
+                chatMessages.appendChild(loadingDiv);
+
+                try {
+                    const res = await fetch(`${BASE_URL}/history/${sessionId}`);
+                    if (!res.ok) throw new Error("Server error");
+                    const messages = await res.json();
+                    chatMessages.innerHTML = ''; 
+                    if (messages.length === 0) { displayWelcomeMessage(); } else {
+                        messages.forEach(msg => { addMessage(msg.sender === 'user' ? 'user' : 'ai', msg.message, true); });
+                        setTimeout(() => { chatMessages.scrollTop = chatMessages.scrollHeight; }, 100);
+                    }
+                } catch (e) {
+                    console.error("Error loading chat", e);
+                    chatMessages.innerHTML = '';
+                    addMessage('ai', "⚠️ I cannot connect to the server. Please check if the Python backend is running.");
+                }
+            };
+
+            const displayWelcomeMessage = () => {
+                 const aiAvatarHTML = `<div class="w-10 h-10 bg-gradient-to-br from-indigo-100 to-white dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white/50 dark:border-white/10"><i data-lucide="brain" class="w-5 h-5 text-indigo-500"></i></div>`;
+                 const welcomeHTML = `
+                    <div class="flex items-end space-x-3 max-w-lg message-enter">
+                        ${aiAvatarHTML}
+                        <div class="ai-message-bubble rounded-2xl rounded-bl-none py-4 px-6 text-[15px] leading-relaxed">
+                            <p>Hey ${USER_NAME}, I’m Aura. 🌱 <br>I'm here to listen. How are you feeling right now?</p>
+                        </div>
+                    </div>`;
+                 chatMessages.innerHTML = welcomeHTML;
+                 lucide.createIcons();
+            };
+
+            newChatBtn.addEventListener('click', () => {
+                currentSessionId = null;
+                localStorage.removeItem('currentSessionId');
+                chatMessages.innerHTML = '';
+                displayWelcomeMessage();
+                fetchSessions();
+                if(window.innerWidth < 768) {
+                    sidebar.classList.add('w-0');
+                    sidebar.classList.remove('w-72', 'border-r');
+                }
+            });
+
+            // ---------------------------
+            // 2. TOOLS & VISUALS
+            // ---------------------------
+            const toggleToolsMenu = () => toolsMenu.classList.toggle('hidden');
+            toolsButton.addEventListener('click', toggleToolsMenu);
+            document.addEventListener('click', (e) => { if (!toolsButton.contains(e.target) && !toolsMenu.contains(e.target)) toolsMenu.classList.add('hidden'); });
+            chatInput.addEventListener('input', () => {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = (chatInput.scrollHeight) + 'px';
+                chatSendButton.disabled = chatInput.value.trim() === '';
+            });
+
+            // ---------------------------
+            // 3. MESSAGING LOGIC
+            // ---------------------------
+            const escapeHTML = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const formatText = (text) => escapeHTML(text).replace(/\n/g, "<br>");
+
+            const addMessage = (sender, text ,instant = false) => {
+                const aiAvatarHTML = `<div class="w-10 h-10 bg-gradient-to-br from-indigo-100 to-white dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white/50 dark:border-white/10"><i data-lucide="brain" class="w-5 h-5 text-indigo-500"></i></div>`;
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'message-enter'; 
+                let messageElementHTML = '';
+                if (sender === 'user') {
+                    messageContainer.classList.add('flex', 'justify-end');
+                    messageElementHTML = `<div class="user-message rounded-2xl rounded-br-none py-3 px-5 max-w-lg text-[15px] leading-relaxed"><p>${formatText(text)}</p></div>`;
+                } else {
+                    messageContainer.classList.add('flex', 'items-end', 'space-x-3', 'max-w-lg');
+                    messageElementHTML = `${aiAvatarHTML}<div class="ai-message-bubble rounded-2xl rounded-bl-none py-4 px-6 text-[15px] leading-relaxed"><p class="ai-typing"></p></div>`;
+                }
+                messageContainer.innerHTML = messageElementHTML;
+                chatMessages.appendChild(messageContainer);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                lucide.createIcons();
+                if (sender === 'ai') {
+                    const typingElement = messageContainer.querySelector('.ai-typing');
+                    if (instant) typingElement.innerHTML = formatText(text);
+                    else typeWriterEffect(typingElement, text, 22);
+                }
+            };
+            
+            const showTypingIndicator = () => {
+                if (typingWrapper) return; 
+                const wrapper = document.createElement('div');
+                wrapper.id = 'typing-wrapper';
+                wrapper.className = 'flex items-end space-x-3 max-w-lg message-enter';
+                wrapper.innerHTML = `<div class="w-10 h-10 bg-gradient-to-br from-indigo-100 to-white dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white/50 dark:border-white/10"><i data-lucide="brain" class="w-5 h-5 text-indigo-500"></i></div><div class="ai-message-bubble rounded-2xl rounded-bl-none py-4 px-6 shadow-sm"><div class="typing-indicator flex items-center h-4"><span></span><span></span><span></span></div></div>`;
+                typingWrapper = wrapper;
+                chatMessages.appendChild(wrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                lucide.createIcons();
+            };
+
+            const removeTypingIndicator = () => {
+                if (typingWrapper && typingWrapper.parentNode) typingWrapper.parentNode.removeChild(typingWrapper);
+                typingWrapper = null;
+            };
+
+            const sendTextMessage = async () => {
+                const messageText = chatInput.value.trim();
+                if (messageText === '') return;
+                addMessage('user', messageText);
+                chatInput.value = '';
+                chatInput.style.height = 'auto';
+                chatSendButton.disabled = true;
+                showTypingIndicator();
+                await getAIResponse(messageText);
+            };
+
+            const getAIResponse = async (messageText) => {
+                try {
+                    const emotionToSend = (currentMode === 'video') ? currentDetectedEmotion : "neutral";
+                    
+                    const response = await fetch(`${BASE_URL}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            message: messageText,
+                            user_id: USER_ID,
+                            session_id: currentSessionId,
+                            emotion: emotionToSend 
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const data = await response.json();
+                    
+                    if (data.session_id && !currentSessionId) {
+                        currentSessionId = data.session_id;
+                        localStorage.setItem('currentSessionId', currentSessionId);
+                        fetchSessions(); 
+                    } else if (data.session_id && currentSessionId) { fetchSessions(); }
+
+                    const aiReply = data.reply || "I'm having trouble responding.";
+                    removeTypingIndicator();
+
+                    if (currentMode === 'voice' || currentMode === 'video') {
+                        speakText(aiReply);
+                    } else {
+                        addMessage('ai', aiReply);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    removeTypingIndicator();
+                    addMessage('ai', "⚠️ Connection Error: Is the backend running?");
+                }
+            };
+
+            chatSendButton.addEventListener('click', sendTextMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTextMessage(); }
+            });
+
+            // ---------------------------
+            // 4. VOICE & VIDEO (FIXED)
+            // ---------------------------
+            const loadVoices = () => {
+                const voices = window.speechSynthesis.getVoices();
+                softVoice = voices.find(v => v.name.includes('Female')) || voices.find(v => v.lang === 'en-US') || null;
+            };
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+
+            const speakText = (text) => {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                if (softVoice) utterance.voice = softVoice;
+                utterance.pitch = 1.1; utterance.rate = 0.95;
+                
+                utterance.onstart = () => {
+                    if (currentMode === 'voice') micStatus.textContent = "Aura is speaking...";
+                    if (currentMode === 'video') { 
+                        videoMicStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Aura is speaking...'; 
+                        aiAvatarVideo.classList.add('speaking'); 
+                    }
+                };
+                
+                utterance.onend = () => {
+                    if (currentMode === 'voice') micStatus.textContent = "Tap microphone to speak";
+                    if (currentMode === 'video') { 
+                        aiAvatarVideo.classList.remove('speaking');
+                        // AUTO-RESTART LISTENING IN VIDEO MODE (Hands-Free)
+                        setTimeout(startListening, 300); 
+                    }
+                };
+                
+                window.speechSynthesis.speak(utterance);
+            };
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false; 
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = () => {
+                   micButton.classList.add('listening'); 
+                   videoMicButton.classList.add('listening');
+                   
+                   if(currentMode === 'voice') {
+                       micStatus.textContent = "Listening...";
+                   }
+                   if(currentMode === 'video') {
+                       videoMicStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Listening...';
+                   }
+                };
+                
+                recognition.onend = () => { 
+                   micButton.classList.remove('listening'); 
+                   videoMicButton.classList.remove('listening');
+                   
+                   if (currentMode === 'video' && !window.speechSynthesis.speaking) {
+                       videoMicStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> Connected';
+                   }
+                };
+                
+                recognition.onresult = async (event) => {
+                    const spokenText = event.results[0][0].transcript;
+                    
+                    if(currentMode === 'voice') micStatus.textContent = "Thinking...";
+                    if(currentMode === 'video') {
+                         videoMicStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-indigo-500 animate-spin"></span> Thinking...';
+                    }
+                    
+                    await getAIResponse(spokenText);
+                };
+                
+                recognition.onerror = (event) => {
+                    console.error("Speech Recognition Error:", event.error);
+                    if(currentMode === 'video') {
+                        videoMicStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-orange-500"></span> Mic Error (Tap to retry)';
+                    }
+                };
+            }
+
+            const startListening = () => {
+                if (!recognition) return;
+                // Don't start if Aura is already speaking
+                if (window.speechSynthesis.speaking) return;
+                
+                try {
+                    recognition.start();
+                } catch(e) {
+                    // Ignore "already started" errors
+                }
+            };
+
+            micButton.addEventListener('click', () => {
+                window.speechSynthesis.cancel();
+                startListening();
+            });
+            
+            videoMicButton.addEventListener('click', () => {
+                window.speechSynthesis.cancel();
+                startListening();
+            });
+
+            document.getElementById('start-voice').addEventListener('click', () => {
+                toolsMenu.classList.add('hidden');
+                currentMode = 'voice';
+                voiceModal.classList.remove('hidden');
+                speakText("Voice connection established.");
+            });
+
+            // --- VIDEO START (UPDATED: audio: false) ---
+            document.getElementById('start-video').addEventListener('click', async () => {
+                toolsMenu.classList.add('hidden');
+                currentMode = 'video';
+                try {
+                    // CRITICAL FIX: Set audio to false to prevent conflict with Speech Recognition
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    userVideo.srcObject = localStream;
+                    videoModal.classList.remove('hidden');
+                    
+                    // Initial Greeting & Auto-Start Mic
+                    speakText("Video connection enabled. I am analyzing your facial expressions.");
+                    
+                    // Start Backend Detection Loop
+                    captureAndSendFrames();
+
+                } catch (err) {
+                    console.error("Camera Error:", err);
+                    alert("Camera access denied or Microphone conflict.");
+                    currentMode = 'chat';
+                }
+            });
+
+            // --- CAPTURE FRAME (FIXED: Downscale image to prevent crash) ---
+            const captureAndSendFrames = () => {
+                if (emotionInterval) clearInterval(emotionInterval);
+                emotionInterval = setInterval(async () => {
+                    // Safe check: video must be playing and ready
+                    if (!userVideo.srcObject || userVideo.readyState < 2) return;
+                    
+                    try {
+                        const context = videoCanvas.getContext('2d');
+                        
+                        // OPTIMIZATION: Downscale image to 320x240
+                        // Sending full resolution (1080p+) images every 2s crashes browsers/servers
+                        const captureWidth = 320;
+                        const captureHeight = 240;
+                        
+                        videoCanvas.width = captureWidth;
+                        videoCanvas.height = captureHeight;
+                        context.drawImage(userVideo, 0, 0, captureWidth, captureHeight);
+                        
+                        const dataURL = videoCanvas.toDataURL('image/jpeg', 0.7);
+                        
+                        const res = await fetch(`${BASE_URL}/detect_emotion`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                image: dataURL,
+                                user_id: USER_ID,
+                                session_id: currentSessionId
+                            })
+                        });
+                        
+                        if (!res.ok) {
+                            // If server error, just ignore for this frame, don't crash
+                            console.warn("Emotion backend error");
+                            return;
+                        }
+
+                        const data = await res.json();
+                        
+                        if (data.status === "success") {
+                            currentDetectedEmotion = data.top_emotion;
+                            emotionStatusText.textContent = `Feeling: ${data.top_emotion} (${(data.confidence).toFixed(1)}%)`;
+                        } else {
+                             emotionStatusText.textContent = `Looking for face...`;
+                             currentDetectedEmotion = "neutral";
+                        }
+                    } catch (e) { 
+                        console.error("Emotion detection loop error:", e);
+                        // Do NOT call hangUp() here
+                    }
+                }, 3000); // Increased interval to 3 seconds for stability
+            };
+
+            document.getElementById('start-ai').addEventListener("click", function () { window.location.href = "AI-model.html"; });
+
+            const hangUp = () => {
+                window.speechSynthesis.cancel();
+                if (recognition) recognition.stop();
+                if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+                
+                if (emotionInterval) clearInterval(emotionInterval);
+                
+                voiceModal.classList.add('hidden');
+                videoModal.classList.add('hidden');
+                currentMode = 'chat';
+            };
+            
+            document.querySelectorAll('.voice-hang-up-button, #video-hang-up-button').forEach(btn => btn.addEventListener('click', hangUp));
+
+            if (currentSessionId) { loadSession(currentSessionId); } else { displayWelcomeMessage(); fetchSessions(); }
+            chatSendButton.disabled = true;
+        });
+
+        const themeToggle = document.getElementById('theme-mode-toggle');
+        if (document.documentElement.classList.contains('dark')) themeToggle.checked = true;
+        themeToggle.addEventListener('change', () => {
+            const isDark = themeToggle.checked;
+            if (isDark) document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+            localStorage.setItem('userTheme', JSON.stringify({ mode: isDark ? 'dark' : 'light', accentHue: '238' }));
+        });
+
+        const typeWriterEffect = (element, text, speed = 35) => {
+            let index = 0; element.innerHTML = "";
+            const interval = setInterval(() => {
+                if (index < text.length) { element.innerHTML += text.charAt(index); index++; chatMessages.scrollTop = chatMessages.scrollHeight; }
+                else { clearInterval(interval); }
+            }, speed);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Mind Mate</title>
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<style>
+    a{
+        text-decoration: none;
+    }
+</style>
+<body>
+    <nav class="bg-card border-b border-[var(--border)] sticky top-0 z-50">
+        <div class="container px-4 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2 text-foreground no-underline">
+                <i data-lucide="brain" class="w-6 h-6 text-primary"></i>
+                <span class="font-bold text-lg">Mind Mate</span>
+            </a>
+            <a href="signup.html" class="btn btn-sm btn-outline">Back to Sign Up</a>
+        </div>
+    </nav>
+
+    <main class="min-h-screen bg-gradient-soft py-12 px-4">
+        <div class="container max-w-3xl">
+            <div class="wellness-card p-8 space-y-8">
+                <div class="text-center space-y-2 border-b border-[var(--border)] pb-6">
+                    <h1 class="text-3xl font-bold text-wellness">Privacy Policy</h1>
+                    <p class="text-muted-foreground">Last updated: January 2026</p>
+                </div>
+
+                <section class="space-y-3">
+                    <h2 class="text-xl font-bold text-foreground">1. Information We Collect</h2>
+                    <p class="text-muted-foreground leading-relaxed">We collect information you provide directly to us when you create an account, including:</p>
+                    <ul class="list-disc list-inside text-muted-foreground space-y-2 ml-4 mt-2">
+                        <li><strong>Personal Identity:</strong> Name, Email address, Age.</li>
+                        <li><strong>Contact Information:</strong> Your mobile contact number.</li>
+                        <li><strong>Safety Information:</strong> Emergency contact number (Parent/Guardian).</li>
+                        <li><strong>Usage & Chat Data:</strong> Information about how you interact with our features, including chat logs with Aura AI.</li>
+                    </ul>
+                </section>
+
+                <section class="space-y-3">
+                    <h2 class="text-xl font-bold text-foreground">2. How We Use Your Information</h2>
+                    <p class="text-muted-foreground leading-relaxed">We use the information we collect to:</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        <div class="p-4 bg-[var(--muted)] rounded-lg">
+                            <h3 class="font-bold text-primary mb-1">Core Services</h3>
+                            <p class="text-sm text-muted-foreground">To provide, maintain, and improve our mental wellness services and track your progress.</p>
+                        </div>
+                        
+                        <div class="p-4 bg-[var(--muted)] rounded-lg">
+                            <h3 class="font-bold text-wellness mb-1">Safety & Emergency</h3>
+                            <p class="text-sm text-muted-foreground">To contact your designated emergency contact only if we detect a critical safety risk.</p>
+                        </div>
+
+                        <div class="col-span-1 md:col-span-2 p-4 bg-primary/10 rounded-lg border border-primary/20">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-primary mt-1 flex-shrink-0"></i>
+                                <div>
+                                    <h3 class="font-bold text-primary mb-1">Aura AI Improvement</h3>
+                                    <p class="text-sm text-muted-foreground">
+                                        We use anonymized conversation logs from your interactions with <strong>Aura AI</strong> to train and improve our artificial intelligence models. This helps Aura become smarter, more empathetic, and better equipped to support the entire community.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-3">
+                    <h2 class="text-xl font-bold text-foreground">3. Data Security</h2>
+                    <p class="text-muted-foreground leading-relaxed">
+                        We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction. However, no internet transmission is completely secure, and we cannot guarantee absolute security.
+                    </p>
+                </section>
+
+                <section class="space-y-3">
+                    <h2 class="text-xl font-bold text-foreground">4. Sharing of Information</h2>
+                    <p class="text-muted-foreground leading-relaxed">
+                        We do not sell your personal data. We may share information with:
+                    </p>
+                    <ul class="list-disc list-inside text-muted-foreground space-y-2 ml-4">
+                        <li><strong>Service Providers:</strong> Who assist us in operating our platform (e.g., hosting).</li>
+                        <li><strong>Legal Authorities:</strong> If required by law or to protect the safety of any person.</li>
+                    </ul>
+                </section>
+
+                <section class="space-y-3">
+                    <h2 class="text-xl font-bold text-foreground">5. Children's Privacy</h2>
+                    <p class="text-muted-foreground leading-relaxed">
+                        Mind Mate is intended for users aged 13-25. We do not knowingly collect personal information from children under 13. If we discover that a child under 13 has provided us with personal information, we will delete such information from our servers.
+                    </p>
+                </section>
+
+                <div class="pt-6 border-t border-[var(--border)] text-center">
+                    <p class="text-sm text-muted-foreground mb-4">
+                        If you have any questions about this Privacy Policy, please contact us at privacy@mindmate.com.
+                    </p>
+                    <a href="signup.html" class="btn btn-wellness">I Understand & Return to Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Mind Mate</title>
+    <meta name="description" content="Sign in to your MindCare Youth account to continue your mental wellness journey." />
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <link rel="stylesheet" href="styles/main.css">
+    <style>
+      .form-card-animation {
+        opacity: 0;
+        transform: scale(0.98);
+        animation: scaleIn 0.5s ease-out forwards;
+      }
+      @keyframes scaleIn {
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="min-h-screen bg-gradient-soft flex items-center justify-center" style="padding: 1rem;">
+      <div class="w-full max-w-md space-y-6">
+        <div class="text-center">
+          <a href="index.html" class="inline-flex items-center gap-2" style="text-decoration: none;">
+            <i data-lucide="brain" class="w-8 h-8 text-primary"></i>
+            <span class="text-2xl font-bold text-foreground">Mind Mate</span>
+          </a>
+        </div>
+
+        <div class="wellness-card form-card-animation">
+          <div class="card-header text-center space-y-2">
+            <h1 class="text-2xl font-bold">Welcome Back</h1>
+            <p class="card-description">
+              Sign in to your account to continue your mental wellness journey
+            </p>
+          </div>
+          <div class="card-content space-y-6">
+            <form id="loginForm" class="space-y-4">
+              <div class="space-y-3">
+                <label class="label">Login as</label>
+                <div class="radio-group">
+                  <div class="radio-item">
+                    <input type="radio" id="user" name="role" value="user" class="radio-input" checked>
+                    <label for="user" class="radio-label">
+                      <i data-lucide="user" class="w-4 h-4"></i>
+                      User
+                    </label>
+                  </div>
+                  <div class="radio-item">
+                    <input type="radio" id="admin" name="role" value="admin" class="radio-input">
+                    <label for="admin" class="radio-label">
+                      <i data-lucide="shield" class="w-4 h-4"></i>
+                      Admin
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="email" class="label">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  class="input"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="password" class="label">Password</label>
+                <div class="relative">
+                  <input
+                    type="password"
+                    id="password"
+                    class="input pr-10"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password')">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-wellness w-full">
+                Sign In
+              </button>
+            </form>
+
+            <div class="text-center space-y-4">
+              <a href="./forgot-password.html" class="text-sm text-primary">
+                Forgot your password?
+              </a>
+              
+              <div class="text-sm text-muted-foreground">
+                Don't have an account?
+                <a href="signup.html" class="text-primary">
+                  Sign up here
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center text-sm text-muted-foreground">
+          <a href="index.html" class="text-primary">
+            ← Back to home
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/login.js"></script>
+  </body>
+</html>

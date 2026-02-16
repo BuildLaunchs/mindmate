@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindMate ChatApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 100%;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            background: #0d9488;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h1 {
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .dashboard-btn {
+            background: white;
+            color: #0d9488;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .dashboard-btn:hover {
+            background: #f0f2f5;
+        }
+
+        .search-box {
+            padding: 12px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .contacts-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .contact-item {
+            padding: 12px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .contact-item:hover {
+            background: #f9fafb;
+        }
+
+        .contact-item.active {
+            background: #e5e7eb;
+        }
+
+        .contact-avatar {
+            font-size: 32px;
+            margin-right: 12px;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .contact-name {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .contact-time {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .contact-lastmsg {
+            font-size: 14px;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .unread-badge {
+            background: #0d9488;
+            color: white;
+            font-size: 12px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+        }
+
+        .chat-area.active {
+            display: flex;
+        }
+
+        .chat-header {
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            margin-right: 12px;
+            display: none;
+        }
+
+        .chat-avatar {
+            font-size: 28px;
+            margin-right: 12px;
+        }
+
+        .chat-user-info h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .chat-user-info p {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.2s;
+        }
+
+        .icon-btn:hover {
+            color: #0d9488;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: linear-gradient(rgba(229, 231, 235, 0.5), rgba(229, 231, 235, 0.5));
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .message.sent {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 60%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .message.received .message-bubble {
+            background: white;
+            color: #111827;
+        }
+
+        .message.sent .message-bubble {
+            background: #0d9488;
+            color: white;
+        }
+
+        .message-text {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .input-area {
+            background: #f9fafb;
+            padding: 12px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .input-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 24px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .send-btn {
+            background: #0d9488;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .send-btn:hover {
+            background: #0f766e;
+        }
+
+        .empty-state {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: #6b7280;
+        }
+
+        /* Call Modal */
+        .call-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .call-modal.active {
+            display: flex;
+        }
+
+        .call-content {
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .call-avatar {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .call-name {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .call-status {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+
+        .call-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .call-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            transition: transform 0.2s;
+        }
+
+        .call-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .accept-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .decline-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+            }
+
+            .sidebar.hidden {
+                display: none;
+            }
+
+            .chat-area {
+                width: 100%;
+            }
+
+            .back-btn {
+                display: block;
+            }
+
+            .empty-state {
+                display: none !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .sidebar {
+                width: 380px;
+            }
+
+            .chat-area {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1>MindMate</h1>
+                <button class="dashboard-btn" onclick="goToDashboard()">📊 Dashboard</button>
+            </div>
+
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="Search contacts..." id="searchInput">
+            </div>
+
+            <div class="contacts-list" id="contactsList"></div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <div class="chat-header" id="chatHeader" style="display: none;">
+                <div class="chat-header-left">
+                    <button class="back-btn" onclick="backToContacts()">←</button>
+                    <div class="chat-avatar" id="chatAvatar"></div>
+                    <div class="chat-user-info">
+                        <h2 id="chatName"></h2>
+                        <p>online</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="icon-btn" onclick="startCall('video')">📹</button>
+                    <button class="icon-btn" onclick="startCall('voice')">📞</button>
+                    <button class="icon-btn">⋮</button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <h2>MindMate ChatApp</h2>
+                    <p>Select a contact to start chatting</p>
+                </div>
+            </div>
+
+            <div class="input-area" id="inputArea" style="display: none;">
+                <div class="input-container">
+                    <button class="icon-btn">😊</button>
+                    <button class="icon-btn">📎</button>
+                    <input type="text" class="message-input" placeholder="Type a message" id="messageInput">
+                    <button class="send-btn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Modal -->
+    <div class="call-modal" id="callModal">
+        <div class="call-content">
+            <div class="call-avatar" id="callAvatar">👤</div>
+            <div class="call-name" id="callName">Contact Name</div>
+            <div class="call-status" id="callStatus">Calling...</div>
+            <div class="call-actions">
+                <button class="call-btn accept-btn" onclick="acceptCall()">📞</button>
+                <button class="call-btn decline-btn" onclick="declineCall()">✖</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const contacts = [
+            { id: 1, name: 'Dax', avatar: '👨', lastMsg: 'See you tomorrow!', time: '2:30 PM', unread: 0 },
+            { id: 2, name: 'Ayush', avatar: '👨', lastMsg: 'Thanks for the help', time: '1:15 PM', unread: 0 },
+            { id: 3, name: 'Hardi', avatar: '👧', lastMsg: 'How are you?', time: '12:45 PM', unread: 0},
+            { id: 4, name: 'Dhruvi', avatar: '👧', lastMsg: 'Let me know when you\'re free', time: '11:20 AM', unread: 0 },
+           
+        ];
+
+        const messages = {
+            1: [
+                { id: 1, text: 'Hey! How are you doing?', sender: 'them', time: '2:15 PM' },
+                { id: 2, text: 'I\'m doing great! Just finished a project.', sender: 'me', time: '2:20 PM' },
+                { id: 3, text: 'That\'s awesome! Congratulations!', sender: 'them', time: '2:25 PM' },
+                { id: 4, text: 'See you tomorrow!', sender: 'them', time: '2:30 PM' }
+            ],
+            2: [
+                { id: 1, text: 'Can you help me with that issue?', sender: 'them', time: '1:00 PM' },
+                { id: 2, text: 'Sure! What do you need?', sender: 'me', time: '1:05 PM' },
+                { id: 3, text: 'Thanks for the help', sender: 'them', time: '1:15 PM' }
+            ],
+            3:[
+                    
+            ]
+        };
+
+        let selectedContact = null;
+        let callType = null;
+
+        function renderContacts(filterQuery) {
+            if (filterQuery === undefined) filterQuery = '';
+            const contactsList = document.getElementById('contactsList');
+            const filtered = contacts.filter(function(c) {
+                return c.name.toLowerCase().includes(filterQuery.toLowerCase());
+            });
+
+            contactsList.innerHTML = filtered.map(function(contact) {
+                var isActive = selectedContact && selectedContact.id === contact.id ? 'active' : '';
+                var unreadBadge = contact.unread > 0 ? '<div class="unread-badge">' + contact.unread + '</div>' : '';
+                return '<div class="contact-item ' + isActive + '" onclick="selectContact(' + contact.id + ')">' +
+                    '<div class="contact-avatar">' + contact.avatar + '</div>' +
+                    '<div class="contact-info">' +
+                        '<div class="contact-header">' +
+                            '<span class="contact-name">' + contact.name + '</span>' +
+                            '<span class="contact-time">' + contact.time + '</span>' +
+                        '</div>' +
+                        '<div class="contact-lastmsg">' + contact.lastMsg + '</div>' +
+                    '</div>' +
+                    unreadBadge +
+                '</div>';
+            }).join('');
+        }
+
+        function selectContact(contactId) {
+            selectedContact = contacts.find(function(c) {
+                return c.id === contactId;
+            });
+            
+            document.getElementById('chatHeader').style.display = 'flex';
+            document.getElementById('inputArea').style.display = 'block';
+            document.getElementById('chatAvatar').textContent = selectedContact.avatar;
+            document.getElementById('chatName').textContent = selectedContact.name;
+            
+            renderMessages();
+            renderContacts();
+
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.add('hidden');
+                document.getElementById('chatArea').classList.add('active');
+            }
+        }
+
+        function renderMessages() {
+            var container = document.getElementById('messagesContainer');
+            var msgs = messages[selectedContact.id] || [];
+            
+            container.innerHTML = msgs.map(function(msg) {
+                var messageClass = msg.sender === 'me' ? 'sent' : 'received';
+                return '<div class="message ' + messageClass + '">' +
+                    '<div class="message-bubble">' +
+                        '<div class="message-text">' + msg.text + '</div>' +
+                        '<div class="message-time">' + msg.time + '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage() {
+            var input = document.getElementById('messageInput');
+            var text = input.value.trim();
+            
+            if (text && selectedContact) {
+                var now = new Date();
+                var time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                
+                if (!messages[selectedContact.id]) {
+                    messages[selectedContact.id] = [];
+                }
+                
+                messages[selectedContact.id].push({
+                    id: Date.now(),
+                    text: text,
+                    sender: 'me',
+                    time: time
+                });
+                
+                input.value = '';
+                renderMessages();
+            }
+        }
+
+        function backToContacts() {
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('chatArea').classList.remove('active');
+        }
+
+        function startCall(type) {
+            if (!selectedContact) return;
+            
+            callType = type;
+            document.getElementById('callAvatar').textContent = selectedContact.avatar;
+            document.getElementById('callName').textContent = selectedContact.name;
+            document.getElementById('callStatus').textContent = type === 'video' ? '📹 Video calling...' : '📞 Voice calling...';
+            document.getElementById('callModal').classList.add('active');
+        }
+
+        function acceptCall() {
+            document.getElementById('callStatus').textContent = 'Connected';
+            setTimeout(() => {
+                declineCall();
+            }, 3000);
+        }
+
+        function declineCall() {
+            document.getElementById('callModal').classList.remove('active');
+        }
+
+        function goToDashboard() {
+           
+            addEventListener("click", function () {
+    window.location.href = "user-dashboard.html"; })
+        }
+
+        // Event Listeners
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            renderContacts(e.target.value);
+        });
+
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize
+        renderContacts();
+    </script>
+</body>
+</html>

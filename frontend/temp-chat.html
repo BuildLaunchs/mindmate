@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Aura AI – Guest Mode</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+/* --- BASE STYLES --- */
+:root {
+  --primary: #6366f1;
+  --primary-glow: rgba(99, 102, 241, 0.4);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: #f8fafc;
+  overflow: hidden; /* Prevent body scroll, handle in chat container */
+}
+
+/* --- AMBIENT BACKGROUND ANIMATION --- */
+.ambient-bg {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  background: #f8fafc;
+}
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.6;
+  animation: float 20s infinite ease-in-out;
+}
+.orb-1 { width: 400px; height: 400px; background: #c7d2fe; top: -10%; left: -10%; animation-delay: 0s; }
+.orb-2 { width: 300px; height: 300px; background: #e9d5ff; bottom: 10%; right: -5%; animation-delay: -5s; }
+.orb-3 { width: 250px; height: 250px; background: #bae6fd; top: 40%; left: 30%; animation-delay: -10s; }
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, -30px); }
+}
+
+/* --- SCROLLBAR --- */
+#chatBox::-webkit-scrollbar { width: 6px; }
+#chatBox::-webkit-scrollbar-track { background: transparent; }
+#chatBox::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+#chatBox::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- CHAT BUBBLES --- */
+.msg-enter {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+@keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+.user-msg {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  border-radius: 20px 20px 4px 20px;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+}
+.ai-msg {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: #1e293b;
+  border-radius: 20px 20px 20px 4px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* --- TOOLTIP & UTILS --- */
+.tooltip-wrap:hover .tooltip-content { opacity: 1; transform: translateX(-50%) translateY(0); }
+.tooltip-content {
+  pointer-events: none;
+  transition: all 0.2s ease;
+  transform: translateX(-50%) translateY(5px);
+}
+
+.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+/* --- GLASS LAYERS --- */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* --- LOCK OVERLAY --- */
+.input-lock-overlay {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(6px);
+  transition: all 0.3s;
+}
+</style>
+</head>
+
+<body class="text-slate-700 h-screen flex flex-col relative">
+
+<div class="ambient-bg">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<header class="fixed top-0 inset-x-0 z-20 p-4">
+  <div class="glass-panel max-w-2xl mx-auto rounded-2xl px-5 py-3 shadow-sm flex justify-between items-center">
+    
+    <div class="flex items-center gap-3">
+      <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-md shadow-indigo-200">
+        <i data-lucide="sparkles" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-slate-800 text-sm leading-tight">Aura AI</h1>
+        <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Guest Access</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col items-end">
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-600 mb-1">
+        <span id="chatCounter">5</span><span>chats left</span>
+      </div>
+      <div class="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+        <div id="progressBar" class="h-full bg-indigo-500 rounded-full transition-all duration-500 ease-out" style="width: 100%"></div>
+      </div>
+    </div>
+
+  </div>
+</header>
+
+<main id="chatBox" class="flex-1 overflow-y-auto pt-28 pb-32 px-4 scroll-smooth">
+  <div class="max-w-2xl mx-auto flex flex-col gap-4 min-h-full justify-end">
+    </div>
+</main>
+
+<footer class="fixed bottom-0 inset-x-0 z-20 p-4">
+  <div class="max-w-2xl mx-auto">
+    
+    <div class="relative glass-panel rounded-3xl p-2 shadow-xl shadow-slate-200/50">
+      
+      <div id="inputLock" class="input-lock-overlay absolute inset-0 z-30 rounded-3xl hidden flex items-center justify-center cursor-pointer">
+        <div class="bg-slate-900/90 text-white px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg transform transition hover:scale-105 flex items-center gap-2">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+          <span>Login to continue</span>
+        </div>
+      </div>
+
+      <div class="flex items-end gap-2">
+        
+        <div class="flex gap-1 pb-1 pl-1">
+          <div class="relative tooltip-wrap">
+            <button id="voiceBtn" class="p-2.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+              <i data-lucide="mic" class="w-5 h-5"></i>
+            </button>
+            <div class="tooltip-content absolute bottom-full left-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 whitespace-nowrap">Voice Chat (Locked)</div>
+          </div>
+          
+          <div class="relative tooltip-wrap">
+            <button id="videoBtn" class="p-2.5 rounded-full text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
+              <i data-lucide="video" class="w-5 h-5"></i>
+            </button>
+            <div class="tooltip-content absolute bottom-full left-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 whitespace-nowrap">Video Chat (Locked)</div>
+          </div>
+        </div>
+
+        <textarea id="msgInput" rows="1"
+          class="flex-1 bg-transparent border-none focus:ring-0 text-slate-700 placeholder-slate-400 resize-none py-3 px-2 max-h-32"
+          placeholder="Ask Aura anything..."></textarea>
+
+        <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95 mb-1 mr-1">
+          <i data-lucide="arrow-up" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="text-center mt-3">
+      <p class="text-[10px] text-slate-400">Aura AI may produce inaccurate information.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" id="modalBackdrop"></div>
+  
+  <div class="auth-box bg-white relative w-full max-w-sm rounded-3xl p-8 shadow-2xl scale-100 transition-all">
+    <button id="closeAuth" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+
+    <div class="text-center">
+      <div class="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
+        <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+      </div>
+      
+      <h2 class="text-2xl font-bold text-slate-800 mb-2">Unlock Full Access</h2>
+      <p class="text-sm text-slate-500 leading-relaxed mb-8">
+        You've used all your free guest messages. <br>Join Aura to unlock unlimited chats, voice mode, and image generation.
+      </p>
+
+      <div class="space-y-3">
+        <a href="./login.html" class="flex justify-center items-center w-full py-3.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+          Log In
+        </a>
+        <a href="./signup.html" class="flex justify-center items-center w-full py-3.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-all">
+          Create Account
+        </a>
+      </div>
+      
+      <p class="mt-6 text-xs text-slate-400">
+        By continuing, you agree to our Terms & Privacy Policy.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+
+// Elements
+const chatBox = document.querySelector("#chatBox > div"); // inner container
+const input = document.getElementById("msgInput");
+const sendBtn = document.getElementById("sendBtn");
+const chatCounter = document.getElementById("chatCounter");
+const progressBar = document.getElementById("progressBar");
+const authModal = document.getElementById("authModal");
+const inputLock = document.getElementById("inputLock");
+const voiceBtn = document.getElementById("voiceBtn");
+const videoBtn = document.getElementById("videoBtn");
+const closeAuthBtn = document.getElementById("closeAuth");
+ const USER_ID = "Guest"; 
+// Config
+const BASE_URL = "http://127.0.0.1:5000";
+const MAX_GUEST = 5;
+let usedChats = 0;
+
+// Init
+addAI("Hello! I'm Aura. 🌱<br>I'm here to listen and help. How are you feeling right now?");
+updateProgress();
+
+// Auto-resize textarea
+input.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = (this.scrollHeight) + 'px';
+  if(this.value === '') this.style.height = 'auto';
+});
+
+// Locked Tools Interactions
+[voiceBtn, videoBtn].forEach(btn => {
+  btn.onclick = () => {
+    btn.classList.add("shake");
+    setTimeout(() => btn.classList.remove("shake"), 500);
+    // Optional: show auth immediately or just tooltip
+    // showAuth(); 
+  };
+});
+
+// Send Logic
+sendBtn.onclick = sendMessage;
+input.addEventListener("keydown", e => {
+  if(e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function sendMessage() {
+  if (usedChats >= MAX_GUEST) {
+    lockUI();
+    showAuth();
+    return;
+  }
+
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Reset textarea height
+  input.style.height = 'auto';
+
+  usedChats++;
+  updateProgress();
+
+  addUser(text);
+  input.value = "";
+  
+  talkToAI(text);
+
+  if (usedChats >= MAX_GUEST) {
+    setTimeout(lockUI, 600);
+  }
+}
+
+// UI Updates
+function updateProgress() {
+  const remaining = MAX_GUEST - usedChats;
+  chatCounter.innerText = remaining;
+  
+  const percentage = (remaining / MAX_GUEST) * 100;
+  progressBar.style.width = `${percentage}%`;
+  
+  if (remaining <= 1) {
+    progressBar.classList.remove("bg-indigo-500");
+    progressBar.classList.add("bg-rose-500");
+  }
+}
+
+function lockUI() {
+  input.blur();
+  inputLock.classList.remove("hidden");
+}
+
+function showAuth() {
+  authModal.classList.remove("hidden");
+  // Animate content
+  const box = authModal.querySelector('.auth-box');
+  box.style.opacity = '0';
+  box.style.transform = 'scale(0.95)';
+  setTimeout(() => {
+    box.style.opacity = '1';
+    box.style.transform = 'scale(1)';
+  }, 10);
+}
+
+function hideAuth() {
+  authModal.classList.add("hidden");
+}
+
+inputLock.onclick = showAuth;
+closeAuthBtn.onclick = hideAuth;
+
+// Chat Rendering
+function addUser(text) {
+  const div = document.createElement('div');
+  div.className = "flex justify-end msg-enter";
+  div.innerHTML = `<div class="user-msg p-3.5 text-[15px] leading-relaxed max-w-[85%]">${escapeHTML(text)}</div>`;
+  chatBox.appendChild(div);
+  scrollToBottom();
+}
+
+function addAI(text) {
+  const div = document.createElement('div');
+  div.className = "flex justify-start msg-enter";
+  // Added an avatar icon for the AI
+  div.innerHTML = `
+    <div class="flex items-end gap-2 max-w-[85%]">
+      <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-400 to-purple-400 flex-shrink-0 mb-1"></div>
+      <div class="ai-msg p-4 text-[15px] leading-relaxed shadow-sm">${text}</div>
+    </div>
+  `;
+  chatBox.appendChild(div);
+  scrollToBottom();
+}
+
+async function talkToAI(msg) {
+  // Add placeholder
+  const placeholderDiv = document.createElement('div');
+  placeholderDiv.className = "flex justify-start msg-enter";
+  placeholderDiv.id = "typingIndicator";
+  placeholderDiv.innerHTML = `
+    <div class="flex items-end gap-2">
+      <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-400 to-purple-400 flex-shrink-0 mb-1"></div>
+      <div class="ai-msg px-4 py-3 flex gap-1">
+        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
+        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
+        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+      </div>
+    </div>`;
+  chatBox.appendChild(placeholderDiv);
+  scrollToBottom();
+
+  try {
+    const r = await fetch(BASE_URL + "/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg,  user_id: USER_ID, })
+    });
+    const d = await r.json();
+    
+    document.getElementById("typingIndicator").remove();
+    addAI(d.reply || "I am listening... tell me more.");
+  } catch (e) {
+    document.getElementById("typingIndicator").remove();
+    addAI("I'm having trouble connecting right now. Please try again.");
+  }
+}
+
+function scrollToBottom() {
+  const main = document.getElementById("chatBox");
+  main.scrollTop = main.scrollHeight;
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, 
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag]));
+}
+</script>
+</body>
+</html>

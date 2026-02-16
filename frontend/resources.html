@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resources - Mind Mate</title>
+    <meta
+      name="description"
+      content="Discover tools, exercises, and content to support your mental wellness journey."
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="website icon" href="/frontend/images/logo.png">
+    <link rel="stylesheet" href="styles/main.css" />
+
+    <style>
+      /* Page-specific polish */
+
+      .filter-btn {
+        background-color: var(--muted);
+        color: var(--muted-foreground);
+        border: none;
+        padding: 0.5rem 1.25rem;
+        border-radius: 9999px;
+        font-weight: 500;
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        transition: var(--transition-smooth);
+      }
+      .filter-btn span.badge {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 9999px;
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+      .filter-btn:hover {
+        background-color: var(--primary-glow);
+        color: var(--primary);
+      }
+      .filter-btn.active {
+        background-color: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .resource-card {
+        transition: var(--transition-smooth);
+        overflow: hidden;
+      }
+      .resource-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .resource-tag {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.2rem 0.6rem;
+        border-radius: 9999px;
+      }
+
+      .resources-header-chip {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        background: var(--primary-glow);
+        color: var(--primary);
+      }
+
+      .search-wrapper {
+        max-width: 420px;
+        width: 100%;
+        position: relative;
+      }
+      .search-wrapper i {
+        position: absolute;
+        left: 0.9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.7;
+      }
+      .search-input {
+        padding-left: 2.4rem;
+      }
+    </style>
+</head>
+<body>
+  <div class="min-h-screen bg-gradient-soft">
+    <!-- Header -->
+    <header class="bg-card border-b">
+      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <a href="user-dashboard.html" class="flex items-center gap-3" style="text-decoration: none;">
+          <i data-lucide="brain" class="w-8 h-8 text-primary"></i>
+          <span class="text-xl font-bold">Mind Mate</span>
+        </a>
+
+        <div class="flex items-center gap-3">
+          <!-- little scope label -->
+          <span class="hidden md:inline-flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            Curated wellness resources
+          </span>
+          <a href="user-dashboard.html" class="btn btn-outline btn-sm" style="text-decoration: none;">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="container mx-auto px-4 py-8">
+      <!-- Title -->
+      <section class="mb-6 text-center">
+        <h1 class="text-3xl md:text-5xl font-bold leading-tight">
+          Discover Resources
+        </h1>
+        <p class="max-w-2xl mx-auto mt-4 text-lg text-muted-foreground">
+          Explore exercises, articles, and guided sessions to support your mental wellness journey.
+        </p>
+
+        <div class="mt-4 inline-flex items-center gap-2 bg-card border rounded-full px-4 py-2 text-sm text-muted-foreground">
+          <span id="total-resources-chip" class="resources-header-chip">
+            0 resources
+          </span>
+          <span class="w-2.5 h-2.5 rounded-full bg-wellness"></span>
+          <span id="active-filter-label">Showing: All</span>
+        </div>
+      </section>
+
+      <!-- Controls -->
+      <section class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <!-- Filters -->
+        <div id="resource-filters" class="flex flex-wrap items-center gap-3 justify-center md:justify-start">
+          <button class="filter-btn active" data-filter="all">
+            All
+            <span class="badge" data-count-badge="all">0</span>
+          </button>
+          <button class="filter-btn" data-filter="exercise">
+            Exercises
+            <span class="badge" data-count-badge="exercise">0</span>
+          </button>
+          <button class="filter-btn" data-filter="article">
+            Articles
+            <span class="badge" data-count-badge="article">0</span>
+          </button>
+          <button class="filter-btn" data-filter="audio">
+            Audio
+            <span class="badge" data-count-badge="audio">0</span>
+          </button>
+          <button class="filter-btn" data-filter="video">
+            Videos
+            <span class="badge" data-count-badge="video">0</span>
+          </button>
+        </div>
+
+        <!-- Search -->
+        <div class="search-wrapper mx-auto md:mx-0">
+          <i data-lucide="search" class="w-4 h-4 text-muted-foreground"></i>
+          <input
+            id="resource-search"
+            type="text"
+            class="input search-input"
+            placeholder="Search by topic, e.g. sleep, stress, social..."
+          />
+        </div>
+      </section>
+
+      <!-- Grid -->
+      <section>
+        <div id="resource-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- cards injected by JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="scripts/main.js"></script>
+  <script src="scripts/resources.js"></script>
+</body>
+</html>

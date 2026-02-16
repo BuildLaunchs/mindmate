@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Command Center - Mind Mate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="styles/main.css">
+
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <style>
+        .pulse-border { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(248, 83, 83, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(248, 83, 83, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(248, 83, 83, 0); }
+        }
+        /* Typing effect for AI Script */
+        .typing-cursor::after { content: '|'; animation: blink 1s step-start infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        
+        .script-step {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInUp 0.5s forwards;
+        }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-gradient-soft transition-colors duration-300">
+        <header class="bg-card border-b sticky top-0 z-40" style="border-color: var(--border)">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('admin-dashboard.html')">
+                    <div class="bg-destructive/10 p-2 rounded-full">
+                        <i data-lucide="siren" class="w-6 h-6 text-destructive"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-foreground leading-none">Emergency Protocols</h1>
+                        <p class="text-xs text-muted-foreground mt-1">Live Command Center</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <label class="theme-toggle" title="Toggle Dark Mode">
+                        <input type="checkbox" id="theme-switch" class="theme-toggle-input" onchange="toggleTheme()">
+                        <span class="theme-toggle-slider"></span>
+                    </label>
+                    
+                    <div class="h-6 w-px bg-border"></div>
+
+                    <button class="btn btn-destructive shadow-lg shadow-destructive/20" onclick="confirmGlobalAlert()">
+                        <i data-lucide="radio" class="w-4 h-4 animate-pulse"></i> Broadcast Alert
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container mx-auto px-4 py-8 space-y-8">
+            <section>
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <i data-lucide="activity" class="text-destructive w-5 h-5"></i> Active Risk Alerts
+                        <span id="alert-badge" class="bg-destructive text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                    </h2>
+                    <p class="text-sm text-muted-foreground flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-wellness animate-pulse"></span> System Operational
+                    </p>
+                </div>
+                <div id="active-alerts-container" class="grid lg:grid-cols-2 gap-4">
+                    </div>
+            </section>
+
+            <section class="wellness-card overflow-hidden">
+                <div class="card-header border-b flex flex-col md:flex-row justify-between items-center gap-4 bg-muted/30" style="border-color: var(--border)">
+                    <div>
+                        <h3 class="card-title">Guardian Directory</h3>
+                        <p class="text-sm text-muted-foreground">Authorized emergency contacts for at-risk users</p>
+                    </div>
+                    <div class="relative w-full md:w-72">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
+                        <input type="text" id="contact-search" placeholder="Search by name, phone or relation..." class="input pl-10" onkeyup="filterContacts()">
+                    </div>
+                </div>
+                <div class="card-content p-0 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="p-4 font-medium">At-Risk User</th>
+                                <th class="p-4 font-medium">Primary Guardian</th>
+                                <th class="p-4 font-medium">Relation</th>
+                                <th class="p-4 font-medium">Contact Details</th>
+                                <th class="p-4 font-medium text-right">Quick Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-table-body" class="divide-y" style="divide-color: var(--border)">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="grid md:grid-cols-3 gap-6">
+                <div class="wellness-card p-6 border-l-4 hover:shadow-md transition-all cursor-pointer group" style="border-left-color: var(--primary)">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-bold mb-1 group-hover:text-primary transition-colors">Police Control</h4>
+                            <p class="text-xs text-muted-foreground">Immediate Threat</p>
+                        </div>
+                        <i data-lucide="shield-alert" class="text-primary w-8 h-8 opacity-20 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                    <p class="text-3xl font-mono mt-4 font-bold tracking-tight">100</p>
+                </div>
+                <div class="wellness-card p-6 border-l-4 hover:shadow-md transition-all cursor-pointer group" style="border-left-color: var(--wellness)">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-bold mb-1 group-hover:text-wellness transition-colors">Ambulance</h4>
+                            <p class="text-xs text-muted-foreground">Medical Emergency</p>
+                        </div>
+                        <i data-lucide="ambulance" class="text-wellness w-8 h-8 opacity-20 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                    <p class="text-3xl font-mono mt-4 font-bold tracking-tight">108</p>
+                </div>
+                <div class="wellness-card p-6 border-l-4 hover:shadow-md transition-all cursor-pointer group" style="border-left-color: var(--warning)">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-bold mb-1 group-hover:text-warning transition-colors">Cyber Crime</h4>
+                            <p class="text-xs text-muted-foreground">Digital Safety</p>
+                        </div>
+                        <i data-lucide="globe-lock" class="text-warning w-8 h-8 opacity-20 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                    <p class="text-3xl font-mono mt-4 font-bold tracking-tight">1930</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="crisis-modal" class="modal-container fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="modal-card bg-card w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-border">
+            <div class="bg-gradient-primary p-6 text-white flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="bg-white/20 p-1 rounded text-xs font-mono uppercase">AI Assisted</span>
+                        <span class="bg-white/20 p-1 rounded text-xs font-mono uppercase">Protocol V2.1</span>
+                    </div>
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="bot" class="w-6 h-6"></i> Crisis De-escalation Assistant
+                    </h3>
+                    <p class="text-white/80 text-sm mt-1">Generating context-aware script for: <span id="modal-subject" class="font-bold">Unknown</span></p>
+                </div>
+                <button onclick="closeModal('crisis-modal')" class="text-white/70 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 bg-muted/30">
+                <div id="script-loading" class="flex flex-col items-center justify-center py-8">
+                    <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="text-muted-foreground animate-pulse">Analyzing risk factors & generating script...</p>
+                </div>
+
+                <div id="script-content" class="hidden space-y-4">
+                    </div>
+            </div>
+
+            <div class="p-4 border-t bg-card flex justify-between items-center">
+                <p class="text-xs text-muted-foreground">AI suggestions should be used with professional judgment.</p>
+                <button class="btn btn-primary" onclick="initiateCallFromModal()">
+                    <i data-lucide="phone" class="w-4 h-4"></i> Proceed to Call
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="call-modal" class="modal-container fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+        <div class="modal-card flex flex-col items-center text-white">
+            <div class="w-24 h-24 bg-muted/20 rounded-full flex items-center justify-center mb-6 relative">
+                <div class="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+                <i data-lucide="phone" class="w-10 h-10 text-white"></i>
+            </div>
+            <h3 class="text-2xl font-light mb-2">Secure Line</h3>
+            <p class="text-lg font-bold mb-8" id="calling-name">Connecting...</p>
+            
+            <div class="flex gap-6">
+                <button class="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all backdrop-blur-sm">
+                    <i data-lucide="mic-off" class="w-6 h-6"></i>
+                </button>
+                <button onclick="endCall()" class="w-16 h-16 rounded-full bg-destructive hover:bg-red-600 flex items-center justify-center shadow-lg shadow-red-500/50 transition-all transform hover:scale-105">
+                    <i data-lucide="phone-off" class="w-8 h-8"></i>
+                </button>
+                <button class="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all backdrop-blur-sm">
+                    <i data-lucide="volume-2" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <script src="scripts/main.js"></script>
+    <script src="scripts/emergency-contacts.js"></script>
+</body>
+</html>
