@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit Profile - Mind Mate</title>
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="styles/main.css" />
+    
+    <style>
+      .profile-header {
+        background: var(--card);
+        padding: 2rem 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 2rem;
+      }
+      .profile-avatar-large {
+        width: 6rem;
+        height: 6rem;
+        border-radius: 999px;
+        background: var(--primary-glow);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: var(--primary);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="min-h-screen bg-gradient-soft">
+      
+      <!-- HEADER -->
+      <div class="profile-header">
+        <div class="container px-4 text-center">
+          <div class="profile-avatar-large">
+            <i data-lucide="user" class="w-12 h-12"></i>
+          </div>
+          <h1 class="text-2xl font-bold mb-2">My Profile</h1>
+          <p class="text-muted-foreground">Update your personal information</p>
+        </div>
+      </div>
+
+      <div class="container px-4 pb-12">
+        <div class="max-w-2xl mx-auto wellness-card p-6">
+          <form id="profileForm" class="space-y-6">
+            
+            <div class="grid md:grid-cols-2 gap-6">
+              <div class="form-group">
+                <label class="label">First Name</label>
+                <input type="text" id="firstName" class="input" required />
+              </div>
+              <div class="form-group">
+                <label class="label">Last Name</label>
+                <input type="text" id="lastName" class="input" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="label">Email Address (Read Only)</label>
+              <input type="email" id="email" class="input bg-muted" readonly />
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+              <div class="form-group">
+                <label class="label">Age</label>
+                <input type="number" id="age" class="input" min="12" max="100" />
+              </div>
+              <div class="form-group">
+                <label class="label">Contact Number</label>
+                <input type="tel" id="contactNumber" class="input" placeholder="+91 9876543210" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="label">Emergency Contact</label>
+              <input type="tel" id="emergencyContact" class="input" placeholder="Parent/Guardian Number" />
+            </div>
+
+            <div class="pt-4 flex justify-between items-center">
+              <a href="user-dashboard.html" class="btn btn-outline text-muted-foreground" style="text-decoration: none;">
+                Cancel
+              </a>
+              <button type="submit" id="save-btn" class="btn btn-wellness px-8">
+                Save Changes
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <div id="toast-container"></div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/user-profile.js"></script>
+  </body>
+</html>

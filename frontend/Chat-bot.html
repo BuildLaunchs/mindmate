@@ -304,12 +304,14 @@
             // Emotion Detection State
             let currentDetectedEmotion = "neutral";
             let emotionInterval = null;
+            let lastEmotionTriggerTime = 0; // NEW: Track last time AI reacted to emotion
             
             // Session State
             let currentSessionId = localStorage.getItem('currentSessionId') || null;
             
             // 2. USE DYNAMIC USER ID
-            const USER_ID = currentUser.user_id; 
+            const currentUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+            const USER_ID = currentUser.user_id || "guest"; 
             const USER_NAME = currentUser.firstName || "User";
             const BASE_URL = 'http://127.0.0.1:5000'; 
 
@@ -530,15 +532,24 @@
             const sendTextMessage = async () => {
                 const messageText = chatInput.value.trim();
                 if (messageText === '') return;
-                addMessage('user', messageText);
+                
                 chatInput.value = '';
                 chatInput.style.height = 'auto';
                 chatSendButton.disabled = true;
-                showTypingIndicator();
-                await getAIResponse(messageText);
+                
+                await getAIResponse(messageText, false);
             };
 
-            const getAIResponse = async (messageText) => {
+            // NEW: Updated getAIResponse to handle 'isHidden' flag
+            // isHidden: If true, sends to AI but does NOT show a user bubble
+            const getAIResponse = async (messageText, isHidden = false) => {
+                // Only show user message if NOT hidden
+                if (!isHidden) {
+                    addMessage('user', messageText);
+                }
+                
+                showTypingIndicator();
+                
                 try {
                     const emotionToSend = (currentMode === 'video') ? currentDetectedEmotion : "neutral";
                     
@@ -567,6 +578,9 @@
 
                     if (currentMode === 'voice' || currentMode === 'video') {
                         speakText(aiReply);
+                        // Also show text if we want, or keep it voice only?
+                        // Let's show text bubble for history context
+                        addMessage('ai', aiReply);
                     } else {
                         addMessage('ai', aiReply);
                     }
@@ -654,7 +668,7 @@
                          videoMicStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-indigo-500 animate-spin"></span> Thinking...';
                     }
                     
-                    await getAIResponse(spokenText);
+                    await getAIResponse(spokenText, false);
                 };
                 
                 recognition.onerror = (event) => {
@@ -698,6 +712,7 @@
             document.getElementById('start-video').addEventListener('click', async () => {
                 toolsMenu.classList.add('hidden');
                 currentMode = 'video';
+                lastEmotionTriggerTime = Date.now(); // Reset trigger timer so it doesn't fire instantly
                 try {
                     // CRITICAL FIX: Set audio to false to prevent conflict with Speech Recognition
                     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -717,7 +732,7 @@
                 }
             });
 
-            // --- CAPTURE FRAME (FIXED: Downscale image to prevent crash) ---
+            // --- CAPTURE FRAME (UPDATED WITH LOGIC) ---
             const captureAndSendFrames = () => {
                 if (emotionInterval) clearInterval(emotionInterval);
                 emotionInterval = setInterval(async () => {
@@ -728,7 +743,6 @@
                         const context = videoCanvas.getContext('2d');
                         
                         // OPTIMIZATION: Downscale image to 320x240
-                        // Sending full resolution (1080p+) images every 2s crashes browsers/servers
                         const captureWidth = 320;
                         const captureHeight = 240;
                         
@@ -749,8 +763,7 @@
                         });
                         
                         if (!res.ok) {
-                            // If server error, just ignore for this frame, don't crash
-                            console.warn("Emotion backend error");
+                            console.warn("Emotion backend error (Check if /detect_emotion is implemented in python)");
                             return;
                         }
 
@@ -758,17 +771,51 @@
                         
                         if (data.status === "success") {
                             currentDetectedEmotion = data.top_emotion;
-                            emotionStatusText.textContent = `Feeling: ${data.top_emotion} (${(data.confidence).toFixed(1)}%)`;
+                            const confidence = data.confidence || 0;
+                            
+                            emotionStatusText.textContent = `Feeling: ${currentDetectedEmotion} (${(confidence).toFixed(1)}%)`;
+
+                            // --- NEW LOGIC: PROACTIVE REACTION ---
+                            // 1. Check if approx 1.25 minutes (75000ms) have passed
+                            // 2. Check if confidence is good (> 50%)
+                            const now = Date.now();
+                            if (now - lastEmotionTriggerTime > 75000) {
+                                if (confidence > 50) {
+                                     // Logic for specific emotions
+                                     if (currentDetectedEmotion === 'happy' || currentDetectedEmotion === 'sad') {
+                                         lastEmotionTriggerTime = now; // Reset timer
+                                         triggerProactiveEmotionResponse(currentDetectedEmotion);
+                                     }
+                                }
+                            }
+
                         } else {
                              emotionStatusText.textContent = `Looking for face...`;
                              currentDetectedEmotion = "neutral";
                         }
                     } catch (e) { 
                         console.error("Emotion detection loop error:", e);
-                        // Do NOT call hangUp() here
                     }
-                }, 3000); // Increased interval to 3 seconds for stability
+                }, 3000); 
             };
+
+            // NEW: Function to trigger AI response based on emotion
+            const triggerProactiveEmotionResponse = (emotion) => {
+                // We send a system-style prompt to the AI.
+                // We use isHidden=true so this prompt doesn't appear in the user's chat bubble list.
+                // The AI's response will still appear and be spoken.
+                
+                let prompt = "";
+                if (emotion === 'happy') {
+                    prompt = "[SYSTEM: The user looks very happy in the video feed. Please comment: 'Yes you are looking too much happy' and ask why.]";
+                } else if (emotion === 'sad') {
+                    prompt = "[SYSTEM: The user looks sad. Please say: 'Ohh dear do not getting sad i ok share with your feeling'.]";
+                } else {
+                    return;
+                }
+                
+                getAIResponse(prompt, true);
+            }
 
             document.getElementById('start-ai').addEventListener("click", function () { window.location.href = "AI-model.html"; });
 
