@@ -44,25 +44,7 @@
           </div>
           <div class="card-content space-y-6">
             <form id="signupForm" class="space-y-4">
-              <div class="space-y-3">
-                <label class="label">Account Type</label>
-                <div class="radio-group">
-                  <div class="radio-item">
-                    <input type="radio" id="signup-user" name="role" value="user" class="radio-input" checked>
-                    <label for="signup-user" class="radio-label">
-                      <i data-lucide="user" class="w-4 h-4"></i>
-                      User
-                    </label>
-                  </div>
-                  <div class="radio-item">
-                    <input type="radio" id="signup-admin" name="role" value="admin" class="radio-input">
-                    <label for="signup-admin" class="radio-label">
-                      <i data-lucide="shield" class="w-4 h-4"></i>
-                      Admin
-                    </label>
-                  </div>
-                </div>
-              </div>
+              <!-- Admin Role toggle removed -->
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="form-group">
@@ -77,8 +59,8 @@
               
               <div class="grid grid-cols-3 gap-4">
                 <div class="col-span-2 form-group">
-                  <label for="signup-email" class="label">Email</label>
-                  <input type="email" id="signup-email" class="input" placeholder="Enter your email" required />
+                  <label for="signup-email" class="label">Verified Email</label>
+                  <input type="email" id="signup-email" class="input bg-gray-50 text-gray-500 cursor-not-allowed" placeholder="Verified email" readonly required />
                 </div>
                 <div class="form-group">
                   <label for="age" class="label">Age</label>
@@ -89,11 +71,11 @@
               <div id="user-specific-fields" class="grid grid-cols-2 gap-4">
                 <div class="form-group">
                   <label for="contactNumber" class="label">Contact Number</label>
-                  <input type="tel" id="contactNumber" class="input" placeholder="Your mobile number" pattern="[0-9]{10}" />
+                  <input type="tel" id="contactNumber" class="input" placeholder="Your mobile number" pattern="[0-9]{10}" required />
                 </div>
                 <div class="form-group">
                   <label for="emergencyContact" class="label">Emergency Contact</label>
-                  <input type="tel" id="emergencyContact" class="input" placeholder="Parent/Guardian number" pattern="[0-9]{10}" />
+                  <input type="tel" id="emergencyContact" class="input" placeholder="Parent/Guardian number" pattern="[0-9]{10}" required />
                 </div>
               </div>
               
@@ -154,6 +136,191 @@
     <div id="toast-container"></div>
 
     <script src="scripts/main.js"></script>
-    <script src="scripts/signup.js"></script>
+    <script>
+      // Signup page functionality - Embedded
+
+      document.addEventListener('DOMContentLoaded', function() {
+        // Check if user came from verification page
+        const verifiedEmail = localStorage.getItem('verifiedSignupEmail');
+        if (!verifiedEmail) {
+          // Redirect back to verification page if no verified email is found
+          window.location.href = 'verify-email.html';
+          return;
+        }
+        
+        // Populate the verified email
+        const emailInput = document.getElementById('signup-email');
+        if (emailInput) {
+          emailInput.value = verifiedEmail;
+        }
+
+        const signupForm = document.getElementById('signupForm');
+        
+        if (signupForm) {
+          signupForm.addEventListener('submit', handleSignup);
+        }
+        
+        // Real-time validation listeners
+        const passwordField = document.getElementById('signup-password');
+        const confirmPasswordField = document.getElementById('confirmPassword');
+        
+        if (confirmPasswordField && passwordField) {
+          confirmPasswordField.addEventListener('input', validatePasswordMatch);
+          passwordField.addEventListener('input', validatePasswordMatch);
+        }
+        
+        // Password strength
+        addPasswordStrengthIndicator();
+      });
+
+      function validatePasswordMatch() {
+        const password = document.getElementById('signup-password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const confirmField = document.getElementById('confirmPassword');
+        
+        if (confirmPassword && password !== confirmPassword) {
+          confirmField.style.borderColor = 'var(--destructive)';
+          showValidationMessage(confirmField, 'Passwords do not match');
+          return false;
+        } else {
+          confirmField.style.borderColor = '';
+          clearValidationMessage(confirmField);
+          return true;
+        }
+      }
+
+      function showValidationMessage(field, message) {
+        clearValidationMessage(field);
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'validation-message text-xs text-red-500 mt-1';
+        messageDiv.textContent = message;
+        field.parentNode.appendChild(messageDiv);
+      }
+
+      function clearValidationMessage(field) {
+        const existingMessage = field.parentNode.querySelector('.validation-message');
+        if (existingMessage) {
+          existingMessage.remove();
+        }
+      }
+
+      async function handleSignup(e) {
+        e.preventDefault();
+        
+        const emailValue = document.getElementById('signup-email').value;
+        
+        if (!emailValue) {
+          if (typeof showToast === 'function') showToast('Please authenticate via Phone.Email first.', 'error');
+          return;
+        }
+
+        const userData = {
+          firstName: document.getElementById('firstName').value,
+          lastName: document.getElementById('lastName').value,
+          email: emailValue,
+          age: document.getElementById('age').value,
+          password: document.getElementById('signup-password').value,
+          role: 'user', // Hardcoded as user
+          contactNumber: document.getElementById('contactNumber').value,
+          emergencyContact: document.getElementById('emergencyContact').value
+        };
+        
+        if (!validatePasswordMatch()) {
+          if (typeof showToast === 'function') showToast('Passwords do not match.', 'error');
+          return;
+        }
+        
+        const submitButton = document.getElementById('create-account-btn');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Creating Account...';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        
+        try {
+          const response = await fetch('https://mindmate-ps7s.onrender.com//signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Account creation failed');
+          }
+          
+          if (typeof showToast === 'function') {
+            showToast(`Account created successfully! Welcome, ${userData.firstName}!`, 'success');
+          }
+          
+          // Clear verified email from local storage so they have to verify again next time
+          localStorage.removeItem('verifiedSignupEmail');
+          
+          setTimeout(() => {
+            if (typeof navigateTo === 'function') {
+              navigateTo('login.html');
+            } else {
+              window.location.href = 'login.html';
+            }
+          }, 1500);
+          
+        } catch (error) {
+          if (typeof handleError === 'function') {
+            handleError(error, error.message || 'Account creation failed. Please try again.');
+          } else {
+            console.error('Signup Error:', error);
+            if (typeof showToast === 'function') showToast(error.message, 'error');
+          }
+          submitButton.disabled = false;
+          submitButton.innerHTML = 'Create Account';
+        }
+      }
+
+      function addPasswordStrengthIndicator() {
+        const passwordField = document.getElementById('signup-password');
+        const container = document.getElementById('password-strength-container');
+        if (!passwordField || !container) return;
+        
+        container.innerHTML = `
+          <div class="password-strength-bar w-full h-2 bg-gray-200 rounded mt-1 overflow-hidden">
+            <div class="password-strength-fill h-full transition-all duration-300 w-0"></div>
+          </div>
+          <div class="password-strength-text text-xs mt-1 font-medium"></div>
+        `;
+
+        const fill = container.querySelector('.password-strength-fill');
+        const text = container.querySelector('.password-strength-text');
+        
+        passwordField.addEventListener('input', function() {
+          const strength = calculatePasswordStrength(this.value);
+          fill.style.width = `${strength.percentage}%`;
+          fill.style.backgroundColor = strength.color;
+          text.textContent = strength.text;
+          text.style.color = strength.color;
+        });
+      }
+
+      function calculatePasswordStrength(password) {
+        let score = 0;
+        if (!password) return { percentage: 0, color: 'transparent', text: '' };
+        
+        if (password.length >= 8) score += 25;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 25;
+        if (/[0-9]/.test(password)) score += 25;
+        if (/[^A-Za-z0-9]/.test(password)) score += 25;
+
+        let color, text;
+        if (score < 50) {
+          color = '#ef4444'; text = 'Weak'; // Red (var(--destructive))
+        } else if (score < 75) {
+          color = '#f59e0b'; text = 'Fair'; // Yellow (var(--warning))
+        } else if (score < 100) {
+          color = '#3b82f6'; text = 'Good'; // Blue (var(--primary))
+        } else {
+          color = '#10b981'; text = 'Strong'; // Green (var(--wellness))
+        }
+        
+        return { percentage: score, color, text };
+      }
+    </script>
   </body>
 </html>

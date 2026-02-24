@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Identity - Mind Mate</title>
+    <meta name="description" content="Verify your email to create a MindCare Youth account." />
+    <link rel="website icon" href="/frontend/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <link rel="stylesheet" href="styles/main.css">
+    <style>
+      .form-card-animation {
+        opacity: 0;
+        transform: scale(0.98);
+        animation: scaleIn 0.5s ease-out forwards;
+      }
+      @keyframes scaleIn {
+        to { opacity: 1; transform: scale(1); }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="min-h-screen bg-gradient-soft flex items-center justify-center" style="padding: 1rem;">
+      <div class="w-full max-w-md space-y-6">
+        <div class="text-center">
+          <a href="index.html" class="inline-flex items-center gap-2" style="text-decoration: none;">
+            <i data-lucide="shield-check" class="w-8 h-8 text-primary"></i>
+            <span class="text-2xl font-bold text-foreground">Mind Mate</span>
+          </a>
+        </div>
+
+        <div class="wellness-card form-card-animation">
+          <div class="card-header text-center space-y-2">
+            <h1 class="text-2xl font-bold">Step 1: Verification</h1>
+            <p class="card-description">
+              Please securely verify your email address to access the signup form.
+            </p>
+          </div>
+          
+          <div class="card-content flex flex-col items-center justify-center space-y-6 py-6">
+            <!-- REPLACE 'YOUR_CLIENT_ID_HERE' WITH YOUR ACTUAL CLIENT ID -->
+            <div class="pe_verify_email" data-client-id="13456390054017339785"></div>
+          </div>
+        </div>
+
+        <div class="text-center text-sm text-muted-foreground">
+          <a href="login.html" class="text-primary">
+            ← Back to Login
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone.Email Script -->
+    <script src="https://www.phone.email/verify_email_v1.js" async></script>
+    <script>
+      lucide.createIcons();
+
+      // Phone.Email Callback Listener
+      window.phoneEmailReceiver = async function(userObj) {
+        try {
+          // Fetch the verified user details from the provided URL
+          const response = await fetch(userObj.user_json_url);
+          const data = await response.json();
+          
+          // Debugging log to see what Phone.Email actually returned
+          console.log("Phone.Email returned data:", data);
+          
+          // Extracts email (Phone.Email usually uses user_email_id) 
+          // Fallback to user_email or user_phone_number just in case
+          const verifiedEmail = data.user_email_id || data.user_email || data.user_phone_number; 
+          
+          if (verifiedEmail) {
+            // Save to browser session so the signup page in the Canvas can read it
+            localStorage.setItem('verifiedSignupEmail', verifiedEmail);
+            
+            // Redirect to the actual signup form
+            window.location.href = 'signup.html';
+          } else {
+            console.warn("Verified, but no email or phone found in data:", data);
+            alert("Verification succeeded, but we couldn't retrieve your email. Please try again.");
+          }
+        } catch (error) {
+          console.error('Failed to verify Phone.Email data:', error);
+          alert('Verification failed due to a network error. Please try again.');
+        }
+      };
+    </script>
+  </body>
+</html>
