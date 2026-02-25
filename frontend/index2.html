@@ -518,8 +518,8 @@
                     <ul class="space-y-2 text-sm">
                         <li><button id="open-about-modal" class="hover:text-indigo-400 transition-colors text-left cursor-pointer w-full">About Us</button></li>
                         <li><button id="open-team-modal" class="hover:text-indigo-400 transition-colors text-left cursor-pointer w-full">Meet the Team</button></li>
-                        <li><a href="#" class="hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-indigo-400 transition-colors">Terms of Service</a></li>
+                        <li><a href="privacy.html" class="hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-indigo-400 transition-colors">Terms of Service</a></li>
                         <li><button id="open-contact-modal" class="hover:text-indigo-400 transition-colors text-left cursor-pointer w-full">Contact Us</button></li>
                     </ul>
                 </div>
@@ -556,7 +556,7 @@
         </div>
     </div>
 
-    <!-- Contact Us Modal with Netlify Form -->
+    <!-- Contact Us Modal -->
     <div id="contact-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
         <div id="contact-modal-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 cursor-pointer"></div>
         <div id="contact-modal-content" class="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 md:p-8 transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[90vh]">
@@ -570,43 +570,21 @@
                 </button>
             </div>
             <div class="overflow-y-auto pr-2 custom-scrollbar">
-                
-                <!-- Netlify Form Integration -->
-                <form id="contact-form" name="contact" method="POST" data-netlify="true" class="space-y-4">
-                    <!-- Netlify Hidden Input for Custom Submissions -->
-                    <input type="hidden" name="form-name" value="contact" />
-                    
-                    <!-- Optional: Hidden field to catch spam bots -->
-                    <p class="hidden">
-                        <label>Don’t fill this out if you're human: <input name="bot-field" /></label>
-                    </p>
-
+                <form class="space-y-4"   data-netlify="true">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
-                        <input type="text" name="name" required class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 px-4 py-2.5 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors" placeholder="Your Name">
+                        <input type="text" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 px-4 py-2.5 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors" placeholder="Your Name">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
-                        <input type="email" name="email" required class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 px-4 py-2.5 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors" placeholder="your@email.com">
+                        <input type="email" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 px-4 py-2.5 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors" placeholder="your@email.com">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Message</label>
-                        <textarea name="message" required rows="4" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 px-4 py-2.5 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors resize-none" placeholder="How can we help you?"></textarea>
+                        <textarea rows="4" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 px-4 py-2.5 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors resize-none" placeholder="How can we help you?"></textarea>
                     </div>
-                    
-                    <button type="submit" id="contact-submit-btn" class="w-full bg-indigo-600 text-white rounded-lg px-4 py-3 font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors shadow-lg hover:shadow-indigo-500/30 transition-all duration-300">
-                        Send Message
-                    </button>
-                    
-                    <!-- Status Messages -->
-                    <div id="contact-form-success" class="hidden text-center text-green-600 dark:text-green-400 text-sm font-medium mt-2">
-                        Message sent successfully!
-                    </div>
-                    <div id="contact-form-error" class="hidden text-center text-red-600 dark:text-red-400 text-sm font-medium mt-2">
-                        Error sending message. Please try again.
-                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white rounded-lg px-4 py-3 font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors shadow-lg hover:shadow-indigo-500/30">Send Message</button>
                 </form>
-
             </div>
         </div>
     </div>
@@ -639,10 +617,10 @@
                             <a href="https://github.com/Prajapatidax/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="GitHub">
                                 <i data-lucide="github" class="w-5 h-5"></i>
                             </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
+                            <a href="https://www.linkedin.com/in/dax-prajapati1707/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
                                 <i data-lucide="linkedin" class="w-5 h-5"></i>
                             </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Portfolio">
+                            <a href="https://daxprajapati.free.nf/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Portfolio">
                                 <i data-lucide="globe" class="w-5 h-5"></i>
                             </a>
                         </div>
@@ -658,7 +636,7 @@
                             <a href="https://github.com/DhruviSolanki1007" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="GitHub">
                                 <i data-lucide="github" class="w-5 h-5"></i>
                             </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
+                            <a href="https://www.linkedin.com/in/dhruvi-solanki-772b38313/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
                                 <i data-lucide="linkedin" class="w-5 h-5"></i>
                             </a>
                             <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Portfolio">
@@ -677,7 +655,7 @@
                             <a href="https://github.com/het0103" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="GitHub">
                                 <i data-lucide="github" class="w-5 h-5"></i>
                             </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
+                            <a href="https://www.linkedin.com/in/het-prajapati-74370431b/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
                                 <i data-lucide="linkedin" class="w-5 h-5"></i>
                             </a>
                             <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Portfolio">
@@ -696,7 +674,7 @@
                             <a href="https://github.com/Hardi1311/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="GitHub">
                                 <i data-lucide="github" class="w-5 h-5"></i>
                             </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
+                            <a href="https://www.linkedin.com/in/hardiba-chavda-0851a9350/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
                                 <i data-lucide="linkedin" class="w-5 h-5"></i>
                             </a>
                             <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Portfolio">
@@ -715,10 +693,10 @@
                             <a href="https://github.com/Ayushprajapati4705" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="GitHub">
                                 <i data-lucide="github" class="w-5 h-5"></i>
                             </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
+                            <a href="https://www.linkedin.com/in/ayush-prajapati-a09194327/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="LinkedIn">
                                 <i data-lucide="linkedin" class="w-5 h-5"></i>
                             </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Portfolio">
+                            <a href="" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Portfolio">
                                 <i data-lucide="globe" class="w-5 h-5"></i>
                             </a>
                         </div>
@@ -858,69 +836,6 @@
         setupModal('team-modal', 'open-team-modal');
         setupModal('about-modal', 'open-about-modal');
         setupModal('contact-modal', 'open-contact-modal');
-
-
-        // --- Netlify Form AJAX Submission ---
-        const contactForm = document.getElementById('contact-form');
-        const submitBtn = document.getElementById('contact-submit-btn');
-        const successMsg = document.getElementById('contact-form-success');
-        const errorMsg = document.getElementById('contact-form-error');
-
-        if (contactForm) {
-            contactForm.addEventListener('submit', function (e) {
-                e.preventDefault(); // Prevent default full-page reload
-                
-                // Set UI to loading state
-                const originalBtnText = submitBtn.innerText;
-                submitBtn.innerText = 'Sending...';
-                submitBtn.disabled = true;
-                submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
-                successMsg.classList.add('hidden');
-                errorMsg.classList.add('hidden');
-
-                const formData = new FormData(contactForm);
-
-                // Send Fetch POST Request directly back to the current route (Netlify handles it)
-                fetch('/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams(formData).toString()
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Show Success
-                        successMsg.classList.remove('hidden');
-                        contactForm.reset();
-                        
-                        // Automatically close modal after 2 seconds
-                        setTimeout(() => {
-                            const closeBtn = document.getElementById('close-contact-modal');
-                            if(closeBtn) closeBtn.click();
-                            
-                            // Reset state for next time
-                            setTimeout(() => {
-                                successMsg.classList.add('hidden');
-                            }, 500); // Wait for modal animation
-                        }, 2000);
-                    } else {
-                        throw new Error('Network response was not ok');
-                    }
-                })
-                .catch(error => {
-                    console.error('Form submission error:', error);
-                    errorMsg.classList.remove('hidden');
-                })
-                .finally(() => {
-                    // Revert button state
-                    submitBtn.innerText = originalBtnText;
-                    submitBtn.disabled = false;
-                    submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-                });
-            });
-
-
-            
-        }
 
     </script>
 </body>
