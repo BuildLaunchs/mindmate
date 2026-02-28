@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize all dashboard components
   updateWelcomeMessage(currentUser);
-  loadWellnessProfile(); // Now fetches from MongoDB
+  loadWellnessProfile(); // Fetches from MongoDB
   animateProgressBars();
   loadRecentActivities();
   initializeMoodSelector();
@@ -119,10 +119,20 @@ document.addEventListener('DOMContentLoaded', function() {
   loadAndRenderUpcomingSessions();
 });
 
+// --- UPDATED: Bulletproof Welcome Message ---
 function updateWelcomeMessage(user) {
-  const welcomeElement = document.querySelector('header h1');
-  if (welcomeElement && user.firstName) {
-    welcomeElement.textContent = `Welcome back, ${user.firstName}!`;
+  const welcomeElement = document.querySelector('.dashboard-header-text h1');
+  
+  if (welcomeElement) {
+    // If firstName is missing, fall back to email prefix, or just "User"
+    let displayName = "User";
+    if (user.firstName) {
+        displayName = user.firstName;
+    } else if (user.email) {
+        displayName = user.email.split('@')[0];
+    }
+    
+    welcomeElement.textContent = `Welcome back, ${displayName}!`;
   }
 }
 
