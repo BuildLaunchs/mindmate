@@ -26,7 +26,6 @@ messages_collection = None
 users_collection = None
 p2p_messages_collection = None
 friend_requests_collection = None
-# New Collections for Group Chat
 groups_collection = None
 group_messages_collection = None
 
@@ -225,7 +224,6 @@ def get_wellness(user_id):
     user = users_collection.find_one({"user_id": user_id}, {"_id": 0, "wellnessProfile": 1})
     if user and "wellnessProfile" in user:
         return jsonify(user["wellnessProfile"])
-    # Default if no score has been taken yet
     return jsonify({"score": 0, "lastUpdate": None}), 404 
 
 @app.route("/wellness/<user_id>", methods=["PUT"])
@@ -263,7 +261,6 @@ def search_users():
     current_user_id = data.get("user_id")
 
     if not query: return jsonify([])
-
     regex = {"$regex": query, "$options": "i"}
     
     users = list(users_collection.find(
@@ -291,8 +288,7 @@ def search_users():
                     {"sender_id": u["user_id"], "receiver_id": current_user_id, "status": "pending"}
                 ]
             })
-            if pending:
-                status = "pending"
+            if pending: status = "pending"
         
         results.append({
             "user_id": u["user_id"],
@@ -315,38 +311,26 @@ def send_friend_request():
         return jsonify({"error": "Already friends"}), 400
 
     existing = friend_requests_collection.find_one({
-        "sender_id": sender_id,
-        "receiver_id": receiver_id,
-        "status": "pending"
+        "sender_id": sender_id, "receiver_id": receiver_id, "status": "pending"
     })
-    if existing:
-        return jsonify({"error": "Request already sent"}), 400
+    if existing: return jsonify({"error": "Request already sent"}), 400
 
     friend_requests_collection.insert_one({
-        "request_id": str(uuid.uuid4()),
-        "sender_id": sender_id,
-        "receiver_id": receiver_id,
-        "status": "pending",
-        "timestamp": datetime.datetime.now(timezone.utc)
+        "request_id": str(uuid.uuid4()), "sender_id": sender_id, "receiver_id": receiver_id,
+        "status": "pending", "timestamp": datetime.datetime.now(timezone.utc)
     })
     return jsonify({"success": True, "message": "Friend request sent"})
 
 @app.route("/friend-request/pending/<user_id>", methods=["GET"])
 def get_pending_requests(user_id):
     if friend_requests_collection is None: return jsonify([])
-    
-    requests = list(friend_requests_collection.find({
-        "receiver_id": user_id,
-        "status": "pending"
-    }))
-
+    requests = list(friend_requests_collection.find({"receiver_id": user_id, "status": "pending"}))
     results = []
     for req in requests:
         sender = users_collection.find_one({"user_id": req["sender_id"]})
         if sender:
             results.append({
-                "request_id": req["request_id"],
-                "sender_id": sender["user_id"],
+                "request_id": req["request_id"], "sender_id": sender["user_id"],
                 "sender_name": f"{sender.get('firstName')} {sender.get('lastName')}",
                 "sender_email": sender["email"]
             })
@@ -362,7 +346,6 @@ def accept_friend_request():
     if not req: return jsonify({"error": "Request not found"}), 404
 
     friend_requests_collection.update_one({"request_id": request_id}, {"$set": {"status": "accepted"}})
-
     users_collection.update_one({"user_id": req["sender_id"]}, {"$push": {"friends": req["receiver_id"]}})
     users_collection.update_one({"user_id": req["receiver_id"]}, {"$push": {"friends": req["sender_id"]}})
 
@@ -371,26 +354,16 @@ def accept_friend_request():
 @app.route("/friends/list/<user_id>", methods=["GET"])
 def get_friends_list(user_id):
     if users_collection is None: return jsonify([])
-    
     user = users_collection.find_one({"user_id": user_id})
     if not user: return jsonify([])
 
     friend_ids = user.get("friends", [])
     if not friend_ids: return jsonify([])
 
-    friends = list(users_collection.find(
-        {"user_id": {"$in": friend_ids}},
-        {"_id": 0, "user_id": 1, "firstName": 1, "lastName": 1, "email": 1}
-    ))
-
-    results = []
-    for f in friends:
-        results.append({
-            "id": f["user_id"],
-            "name": f"{f.get('firstName')} {f.get('lastName')}",
-            "email": f["email"]
-        })
+    friends = list(users_collection.find({"user_id": {"$in": friend_ids}}, {"_id": 0, "user_id": 1, "firstName": 1, "lastName": 1, "email": 1}))
+    results = [{"id": f["user_id"], "name": f"{f.get('firstName')} {f.get('lastName')}", "email": f["email"]} for f in friends]
     return jsonify(results)
+
 
 # --------------------------------------------------
 #              GROUP CHAT ROUTES (NEW)
@@ -402,55 +375,29 @@ def create_group():
     data = request.json
     group_name = data.get("name")
     creator_id = data.get("creator_id")
-    members = data.get("members", []) # List of user IDs including creator
+    members = data.get("members", []) 
 
-    if not group_name or not creator_id:
-        return jsonify({"error": "Missing fields"}), 400
-
-    # Ensure creator is in members
-    if creator_id not in members:
-        members.append(creator_id)
+    if not group_name or not creator_id: return jsonify({"error": "Missing fields"}), 400
+    if creator_id not in members: members.append(creator_id)
 
     group_data = {
-        "group_id": str(uuid.uuid4()),
-        "name": group_name,
-        "created_by": creator_id,
-        "members": members,
-        "created_at": datetime.datetime.now(timezone.utc)
+        "group_id": str(uuid.uuid4()), "name": group_name, "created_by": creator_id,
+        "members": members, "created_at": datetime.datetime.now(timezone.utc)
     }
-
     groups_collection.insert_one(group_data)
     return jsonify({"success": True, "message": "Group created", "group": {"id": group_data["group_id"], "name": group_data["name"]}})
 
 @app.route("/groups/list/<user_id>", methods=["GET"])
 def list_groups(user_id):
     if groups_collection is None: return jsonify([])
-    
-    # Find groups where user_id is in members array
-    groups = list(groups_collection.find(
-        {"members": user_id},
-        {"_id": 0, "group_id": 1, "name": 1, "members": 1}
-    ))
-    
-    results = []
-    for g in groups:
-        results.append({
-            "id": g["group_id"],
-            "name": g["name"],
-            "member_count": len(g["members"])
-        })
-    
+    groups = list(groups_collection.find({"members": user_id}, {"_id": 0, "group_id": 1, "name": 1, "members": 1}))
+    results = [{"id": g["group_id"], "name": g["name"], "member_count": len(g["members"])} for g in groups]
     return jsonify(results)
 
 @app.route("/groups/messages/<group_id>", methods=["GET"])
 def get_group_messages(group_id):
     if group_messages_collection is None: return jsonify([])
-    
-    messages = list(group_messages_collection.find(
-        {"group_id": group_id}, 
-        {"_id": 0}
-    ).sort("timestamp", 1))
-
+    messages = list(group_messages_collection.find({"group_id": group_id}, {"_id": 0}).sort("timestamp", 1))
     return jsonify(messages)
 
 @app.route("/groups/send", methods=["POST"])
@@ -458,20 +405,14 @@ def send_group_message():
     if group_messages_collection is None: return jsonify({"error": "DB error"}), 500
     data = request.json
     sender_id = data.get("sender_id")
-    
-    # Fetch sender name for display purposes in group chat
     sender = users_collection.find_one({"user_id": sender_id})
     sender_name = f"{sender.get('firstName')} {sender.get('lastName')}" if sender else "Unknown"
 
     msg_data = {
-        "message_id": str(uuid.uuid4()),
-        "group_id": data.get("group_id"),
-        "sender_id": sender_id,
-        "sender_name": sender_name,
-        "text": data.get("text"),
-        "timestamp": datetime.datetime.now(timezone.utc).isoformat()
+        "message_id": str(uuid.uuid4()), "group_id": data.get("group_id"),
+        "sender_id": sender_id, "sender_name": sender_name,
+        "text": data.get("text"), "timestamp": datetime.datetime.now(timezone.utc).isoformat()
     }
-
     group_messages_collection.insert_one(msg_data)
     return jsonify({"success": True, "message": msg_data})
 
@@ -501,12 +442,9 @@ def send_p2p_message():
     data = request.json
     
     msg_data = {
-        "message_id": str(uuid.uuid4()),
-        "sender_id": data.get("sender_id"),
-        "receiver_id": data.get("receiver_id"),
-        "text": data.get("text"),
-        "timestamp": datetime.datetime.now(timezone.utc).isoformat(),
-        "read": False
+        "message_id": str(uuid.uuid4()), "sender_id": data.get("sender_id"),
+        "receiver_id": data.get("receiver_id"), "text": data.get("text"),
+        "timestamp": datetime.datetime.now(timezone.utc).isoformat(), "read": False
     }
 
     p2p_messages_collection.insert_one(msg_data)
@@ -518,10 +456,8 @@ def send_p2p_message():
 
 @app.route("/detect_emotion", methods=["POST"])
 def detect_emotion():
-    
     try:
         data = request.json
-       
         emotions = ['happy', 'sad', 'neutral', 'neutral', 'neutral']
         detected = random.choice(emotions) 
         confidence = random.uniform(60.0, 95.0)
@@ -544,11 +480,10 @@ def chat():
     user_message = data.get("message")
     user_id = data.get("user_id", "user_1")
     session_id = data.get("session_id") or str(uuid.uuid4())
-    emotion = data.get("emotion") # NEW: Get emotion from frontend
+    emotion = data.get("emotion") 
 
     if not user_message: return jsonify({"error": "No message"}), 400
 
-    # Store User Message
     if messages_collection is not None:
         messages_collection.insert_one({
             "user_id": user_id, "session_id": session_id,
@@ -559,22 +494,16 @@ def chat():
     user_memory = get_user_memory(user_id)
     history = get_chat_history(session_id, user_id)
     
-    # NEW: Prepare Context Message for AI
-    # If the user looks happy/sad in video, we prepend this context to the message
     context_message = user_message
     if emotion and emotion != "neutral":
-        # The frontend sends a specific prompt if triggering proactive reaction,
-        # but for normal chat, we just add context.
         if "[SYSTEM:" not in user_message:
             context_message = f"[Visual Context: The user looks {emotion}] {user_message}"
     
     model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=get_ai_persona(user_memory))
     chat_session = model.start_chat(history=history)
     
-    # Send the context-enriched message to Gemini
     response = chat_session.send_message(context_message)
     
-    # Store AI Response
     if messages_collection is not None:
         messages_collection.insert_one({
             "user_id": user_id, "session_id": session_id,
@@ -595,9 +524,7 @@ def get_sessions(user_id):
     ]
     sessions = list(messages_collection.aggregate(pipeline))
     return jsonify([{"session_id": s["_id"], "preview": s["last_message"][:30] + "...", "timestamp": s["timestamp"]} for s in sessions])
-#--------------------------------------------------
-#               Session Management Routes
-# --------------------------------------------------
+
 @app.route("/sessions/<session_id>", methods=["DELETE"])
 def delete_session(session_id):
     if messages_collection is not None:
@@ -609,6 +536,98 @@ def delete_session(session_id):
 def get_session_history(session_id):
     if messages_collection is None: return jsonify([])
     return jsonify(list(messages_collection.find({"session_id": session_id}, {"_id": 0}).sort("timestamp", 1)))
+
+
+# --------------------------------------------------
+#          ADMIN DASHBOARD ROUTES (NEW)
+# --------------------------------------------------
+@app.route("/admin/stats", methods=["GET"])
+def admin_stats():
+    if users_collection is None: return jsonify({"error": "DB error"}), 500
+    
+    # 1. Total users
+    total_users = users_collection.count_documents({})
+    
+    # 2. High risk users (wellness < 50)
+    high_risk_count = users_collection.count_documents({"wellnessProfile.score": {"$lt": 50}})
+    
+    # 3. Average Wellness Score
+    pipeline = [
+        {"$match": {"wellnessProfile.score": {"$type": "number"}}},
+        {"$group": {"_id": None, "avg_score": {"$avg": "$wellnessProfile.score"}}}
+    ]
+    avg_result = list(users_collection.aggregate(pipeline))
+    avg_score = round(avg_result[0]["avg_score"], 1) if avg_result and avg_result[0].get("avg_score") else 0
+    
+    # 4. Active Sessions in the last 24 hours
+    active_sessions = 0
+    if messages_collection is not None:
+        yesterday = datetime.datetime.now(timezone.utc) - datetime.timedelta(days=1)
+        active_sessions = len(messages_collection.distinct("session_id", {"timestamp": {"$gte": yesterday}}))
+    
+    return jsonify({
+        "totalUsers": total_users,
+        "highRisk": high_risk_count,
+        "avgScore": avg_score,
+        "activeSessions": active_sessions
+    })
+
+@app.route("/admin/users", methods=["GET"])
+def admin_users():
+    if users_collection is None: return jsonify([])
+    users = list(users_collection.find({}, {"_id": 0, "password": 0}))
+    
+    results = []
+    for u in users:
+        score = u.get("wellnessProfile", {}).get("score", 0)
+        risk_level = "low"
+        if score < 50: risk_level = "high"
+        elif score < 75: risk_level = "medium"
+
+        # Unique session count per user
+        sessions = 0
+        if messages_collection is not None:
+            sessions = len(messages_collection.distinct("session_id", {"user_id": u["user_id"]}))
+
+        last_active = u.get("wellnessProfile", {}).get("lastUpdate") or u.get("created_at")
+        if isinstance(last_active, datetime.datetime):
+            last_active = last_active.isoformat()
+
+        results.append({
+            "id": u["user_id"],
+            "name": f"{u.get('firstName', '')} {u.get('lastName', '')}".strip() or "Unknown User",
+            "age": u.get("age", "N/A"),
+            "sessions": sessions,
+            "screenTime": f"{random.uniform(1.0, 8.0):.1f}h", # Simulated Screen time
+            "riskLevel": risk_level,
+            "wellnessScore": score,
+            "lastActive": last_active
+        })
+    return jsonify(results)
+
+@app.route("/admin/alerts", methods=["GET"])
+def admin_alerts():
+    if users_collection is None: return jsonify([])
+    # Generate alerts based on users with extremely low scores
+    high_risk_users = list(users_collection.find({"wellnessProfile.score": {"$lt": 50}}).sort("wellnessProfile.lastUpdate", -1).limit(5))
+    
+    alerts = []
+    for u in high_risk_users:
+        alerts.append({
+            "user": f"{u.get('firstName', '')} {u.get('lastName', '')}",
+            "type": "Low wellness score detected",
+            "time": u.get("wellnessProfile", {}).get("lastUpdate") or datetime.datetime.now(timezone.utc).isoformat(),
+            "severity": "high"
+        })
+        
+    # Mock alerts if db yields empty to show functionality on the frontend
+    if not alerts:
+        alerts = [
+            {"user": "System Admin", "type": "No immediate alerts", "time": datetime.datetime.now(timezone.utc).isoformat(), "severity": "low"}
+        ]
+        
+    return jsonify(alerts)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
