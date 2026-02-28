@@ -217,6 +217,42 @@ def update_user_profile():
     return jsonify({"error": "User not found"}), 404
 
 # --------------------------------------------------
+#           WELLNESS TRACKING ROUTES 
+# --------------------------------------------------
+@app.route("/wellness/<user_id>", methods=["GET"])
+def get_wellness(user_id):
+    if users_collection is None: return jsonify({"error": "DB error"}), 500
+    user = users_collection.find_one({"user_id": user_id}, {"_id": 0, "wellnessProfile": 1})
+    if user and "wellnessProfile" in user:
+        return jsonify(user["wellnessProfile"])
+    # Default if no score has been taken yet
+    return jsonify({"score": 0, "lastUpdate": None}), 404 
+
+@app.route("/wellness/<user_id>", methods=["PUT"])
+def update_wellness(user_id):
+    if users_collection is None: return jsonify({"error": "DB error"}), 500
+    data = request.json
+    score = data.get("score")
+    
+    if score is None: 
+        return jsonify({"error": "Score is required"}), 400
+
+    wellness_data = {
+        "score": score,
+        "lastUpdate": datetime.datetime.now(timezone.utc).isoformat()
+    }
+    
+    result = users_collection.update_one(
+        {"user_id": user_id}, 
+        {"$set": {"wellnessProfile": wellness_data}}
+    )
+    
+    if result.matched_count > 0:
+        return jsonify({"success": True, "message": "Wellness score updated", "wellnessProfile": wellness_data})
+    
+    return jsonify({"error": "User not found"}), 404
+
+# --------------------------------------------------
 #               FRIEND SYSTEM ROUTES
 # --------------------------------------------------
 @app.route("/users/search", methods=["POST"])
