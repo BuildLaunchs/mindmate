@@ -12,6 +12,9 @@ let chatMessages = [];
 let currentQuestionIndex = 0;
 let userAnswers = [];
 
+// API Configuration
+const API_BASE_URL = 'https://mindmate-ps7s.onrender.com/';
+
 
 // --- START: Theme Customization ---
 function initializeTheme() {
@@ -108,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize all dashboard components
   updateWelcomeMessage(currentUser);
-  loadWellnessProfile();
+  loadWellnessProfile(); // Now fetches from MongoDB
   animateProgressBars();
   loadRecentActivities();
   initializeMoodSelector();
@@ -177,10 +180,32 @@ function updateWellnessJourneyUI(score, animate = false) {
   }
 }
 
-function loadWellnessProfile() {
-  const profile = getFromStorage('wellnessProfile');
-  if (profile && typeof profile.score !== 'undefined') {
-    updateWellnessJourneyUI(profile.score, false);
+async function loadWellnessProfile() {
+  const currentUser = getCurrentUser();
+  if (!currentUser) return;
+
+  try {
+    // Attempt to fetch from MongoDB Backend first
+    const response = await fetch(`${API_BASE_URL}/wellness/${currentUser.user_id}`);
+    
+    if (response.ok) {
+      const profile = await response.json();
+      if (profile && typeof profile.score !== 'undefined') {
+        updateWellnessJourneyUI(profile.score, false);
+        saveToStorage('wellnessProfile', profile); // Sync local storage
+        return;
+      }
+    } else {
+       console.log("No wellness score found on the backend yet.");
+    }
+  } catch (error) {
+    console.error("Error fetching wellness score from DB:", error);
+  }
+
+  // Fallback to local storage if API call fails
+  const localProfile = getFromStorage('wellnessProfile');
+  if (localProfile && typeof localProfile.score !== 'undefined') {
+    updateWellnessJourneyUI(localProfile.score, false);
   }
 }
 
@@ -376,7 +401,7 @@ function calculateWellnessScore(answers) {
   return wellnessScore;
 }
 
-function submitQuestionnaire() {
+async function submitQuestionnaire() {
   if (userAnswers.includes(null)) {
     showToast('Please answer all questions.', 'error');
     return;
@@ -384,9 +409,32 @@ function submitQuestionnaire() {
   closeModal('questionnaire-modal');
   showToast('Thank you for completing your wellness check-in!', 'success');
   addActivity('assessment', 'Completed Wellness Check-in');
+  
   const score = calculateWellnessScore(userAnswers);
   updateWellnessJourneyUI(score, true);
+  
+  // Backup save to localStorage
   saveToStorage('wellnessProfile', { score: score, lastUpdate: new Date().toISOString() });
+
+  // Update Score on the MongoDB Backend
+  const currentUser = getCurrentUser();
+  if (currentUser && currentUser.user_id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/wellness/${currentUser.user_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ score: score })
+      });
+      
+      if (!response.ok) {
+        console.error("Failed to save wellness score to database.");
+      }
+    } catch (error) {
+      console.error("Error communicating with backend:", error);
+    }
+  }
 }
 
 function checkQuestionnaireStatus() { const card = document.getElementById('questionnaire-card'); if (card) card.style.display = 'flex'; }
@@ -554,6 +602,3 @@ function confirmBooking() {
   renderUpcomingSessions();
   addActivity('booking', `Booked session with ${newSession.counselor}`);
 }
-
-
-//new by the dax
