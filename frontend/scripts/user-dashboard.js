@@ -13,7 +13,7 @@ let currentQuestionIndex = 0;
 let userAnswers = [];
 
 // API Configuration
-const API_BASE_URL = 'https://mindmate-ps7s.onrender.com/';
+const API_BASE_URL = 'http://localhost:5000'; // Make sure this matches your Python running port
 
 
 // --- START: Theme Customization ---
@@ -124,11 +124,12 @@ function updateWelcomeMessage(user) {
   const welcomeElement = document.querySelector('.dashboard-header-text h1');
   
   if (welcomeElement) {
-    // If firstName is missing, fall back to email prefix, or just "User"
-    let displayName = "User";
-    if (user.firstName) {
+    let displayName = "User"; // Fallback name
+    
+    if (user && user.firstName && user.firstName.trim() !== "") {
         displayName = user.firstName;
-    } else if (user.email) {
+    } else if (user && user.email) {
+        // Use the first part of their email if no name is found
         displayName = user.email.split('@')[0];
     }
     

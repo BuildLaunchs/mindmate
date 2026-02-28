@@ -153,8 +153,8 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
         
         try {
-          // Call the Flask Backend
-          const response = await fetch('https://mindmate-ps7s.onrender.com//login', {
+          // Changed URL to point to localhost so it pulls your updated Python code
+          const response = await fetch('http://localhost:5000/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
