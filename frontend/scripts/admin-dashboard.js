@@ -1,50 +1,88 @@
-// Admin dashboard functionality
+// Admin dashboard functionality connected to the Flask API
 
 let userMonitoringData = [];
 // Keep track of the chart instance to destroy it if the report is generated again
 let wellnessChartInstance = null;
 
 document.addEventListener('DOMContentLoaded', function () {
+  // Authentication check logic (Uncomment if auth is active on local app)
+  /*
   const currentUser = getCurrentUser();
   if (!currentUser || currentUser.role !== 'admin') {
     showToast('Access denied. Admin privileges required.', 'error');
     setTimeout(() => navigateTo('login.html'), 2000);
     return;
   }
+  */
 
   initializeAdminDashboard();
 });
 
-function initializeAdminDashboard() {
-  loadUserMonitoringData();
-  loadRecentAlerts();
-  document.querySelectorAll('[data-count]').forEach(animateCountUp);
+async function initializeAdminDashboard() {
+  await fetchDashboardStats();
+  await loadUserMonitoringData();
+  await loadRecentAlerts();
 }
 
-function loadUserMonitoringData() {
-  userMonitoringData = [
-    { id: 'u01', name: 'Smit', age: 16, sessions: 12, screenTime: '5.2h', riskLevel: 'low', wellnessScore: 85, lastActive: new Date(Date.now() - 2 * 3600000).toISOString() },
-    { id: 'u02', name: 'Ravi', age: 17, sessions: 8, screenTime: '8.1h', riskLevel: 'medium', wellnessScore: 72, lastActive: new Date(Date.now() - 4 * 3600000).toISOString() },
-    { id: 'u03', name: 'Prachi', age: 15, sessions: 15, screenTime: '3.4h', riskLevel: 'low', wellnessScore: 91, lastActive: new Date(Date.now() - 1 * 3600000).toISOString() },
-    { id: 'u04', name: 'Kalp', age: 18, sessions: 3, screenTime: '11.2h', riskLevel: 'high', wellnessScore: 45, lastActive: new Date(Date.now() - 30 * 60000).toISOString() },
-  ];
-  renderUserMonitoringList();
+// --------------------------------------------------
+// Fetch and populate overview statistics cards
+// --------------------------------------------------
+async function fetchDashboardStats() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/stats`);
+        if (!response.ok) throw new Error("Failed to fetch statistics");
+        const data = await response.json();
+
+        updateCounter('stat-total-users', data.totalUsers || 0);
+        updateCounter('stat-active-sessions', data.activeSessions || 0);
+        updateCounter('stat-high-risk', data.highRisk || 0);
+        updateCounter('stat-avg-score', data.avgScore || 0);
+        
+    } catch (error) {
+        console.error("Dashboard Stats Error:", error);
+        showToast("Error loading top-level metrics", "error");
+    }
+}
+
+function updateCounter(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.dataset.count = value;
+        animateCountUp(el); // Calls the count up from main.js
+    }
+}
+
+// --------------------------------------------------
+// Fetch and render the comprehensive users list
+// --------------------------------------------------
+async function loadUserMonitoringData() {
+  try {
+      const response = await fetch(`${API_BASE_URL}/admin/users`);
+      if (!response.ok) throw new Error("Failed to load user monitoring data");
+      userMonitoringData = await response.json();
+      renderUserMonitoringList();
+  } catch(error) {
+      console.error("User List Error:", error);
+      document.getElementById('user-monitoring-list').innerHTML = `<div class="p-4 text-center text-destructive">Failed to load real-time data. Database may be disconnected.</div>`;
+  }
 }
 
 function renderUserMonitoringList() {
   const container = document.getElementById('user-monitoring-list');
   if (!container) return;
+  
+  if (userMonitoringData.length === 0) {
+      container.innerHTML = `<div class="p-4 text-center text-muted-foreground">No users found on the server.</div>`;
+      return;
+  }
 
   container.innerHTML = userMonitoringData
     .map((user) => {
-      const initials = user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('');
+      const initials = user.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
       return `
-    <div class="flex items-center justify-between p-4 border rounded-lg transition-all hover:shadow-md" style="border-color: var(--border);">
+    <div class="flex items-center justify-between p-4 border rounded-lg transition-all hover:shadow-md mb-2" style="border-color: var(--border);">
       <div class="flex items-center gap-4">
-        <div class="user-avatar ${getRiskLevelColor(user.riskLevel, 'bg')}">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${getRiskLevelColor(user.riskLevel, 'bg')}">
           ${initials}
         </div>
         <div>
@@ -62,7 +100,7 @@ function renderUserMonitoringList() {
            user.riskLevel,
            'bg'
          )}"></div>
-         <span class="text-sm font-medium capitalize">${user.riskLevel} Risk</span>
+         <span class="text-sm font-medium capitalize hidden sm:inline-block">${user.riskLevel} Risk</span>
          <button class="btn btn-outline btn-sm ml-4" onclick="viewUserDetails('${
            user.id
          }')">Details</button>
@@ -79,36 +117,46 @@ function getRiskLevelColor(level, type = 'text') {
     medium: { text: 'text-warning', bg: 'bg-warning' },
     high: { text: 'text-destructive', bg: 'bg-destructive' },
   };
-  return styles[level]?.[type] || 'bg-muted';
+  // Fallback map styling if variable classes are missing 
+  const fallbackBg = { low: 'bg-green-500', medium: 'bg-yellow-500', high: 'bg-red-500' };
+  return styles[level]?.[type] || 'bg-gray-500';
 }
 
-function loadRecentAlerts() {
-  const alerts = [
-    { user: 'Meet', type: 'High screen time', time: new Date(Date.now() - 2 * 60000).toISOString(), severity: 'high' },
-    { user: 'Jay', type: 'Missed session', time: new Date(Date.now() - 3600000).toISOString(), severity: 'medium' },
-    { user: 'Vishwa', type: 'Mood decline', time: new Date(Date.now() - 3 * 3600000).toISOString(), severity: 'high' },
-  ];
+// --------------------------------------------------
+// Fetch and render automated alerts
+// --------------------------------------------------
+async function loadRecentAlerts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/alerts`);
+        if (!response.ok) throw new Error("Failed to load alerts");
+        const alerts = await response.json();
+        
+        const container = document.getElementById('recent-alerts');
+        if (!container) return;
 
-  const container = document.getElementById('recent-alerts');
-  if (!container) return;
-
-  container.innerHTML = alerts
-    .map(
-      (alert) => `
-    <div class="flex items-start gap-4 p-3 border rounded-lg" style="border-color: var(--border);">
-      <div class="w-3 h-3 rounded-full mt-1.5 ${getRiskLevelColor(alert.severity, 'bg')} ${
-        alert.severity === 'high' ? 'pulse-destructive' : ''
-      }"></div>
-      <div class="flex-1">
-        <div class="font-medium text-sm">${alert.user} - ${alert.type}</div>
-        <div class="text-xs text-muted-foreground">${getTimeAgo(alert.time)}</div>
-      </div>
-    </div>
-  `
-    )
-    .join('');
+        container.innerHTML = alerts
+          .map(
+            (alert) => `
+          <div class="flex items-start gap-4 p-3 border rounded-lg" style="border-color: var(--border);">
+            <div class="w-3 h-3 rounded-full mt-1.5 ${getRiskLevelColor(alert.severity, 'bg')} ${
+              alert.severity === 'high' ? 'pulse-destructive' : ''
+            }"></div>
+            <div class="flex-1">
+              <div class="font-medium text-sm">${alert.user} - ${alert.type}</div>
+              <div class="text-xs text-muted-foreground">${getTimeAgo(alert.time)}</div>
+            </div>
+          </div>
+        `
+          )
+          .join('');
+    } catch(error) {
+        console.error("Alerts Error:", error);
+    }
 }
 
+// --------------------------------------------------
+// UI Details and Actions
+// --------------------------------------------------
 function viewUserDetails(userId) {
   const user = userMonitoringData.find((u) => u.id === userId);
   if (!user) return;
@@ -119,26 +167,23 @@ function viewUserDetails(userId) {
   content.innerHTML = `
     <div class="space-y-6">
       <div class="flex items-center gap-4">
-        <div class="user-avatar text-lg ${getRiskLevelColor(user.riskLevel, 'bg')}">
-          ${user.name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')}
+        <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-white text-xl ${getRiskLevelColor(user.riskLevel, 'bg')}">
+          ${user.name.split(' ').map((n) => n[0]).join('').substring(0,2).toUpperCase()}
         </div>
         <div>
           <h4 class="text-xl font-bold">${user.name}</h4>
           <p class="text-muted-foreground">Age ${user.age} • ${
-    user.lastActive ? `Last active: ${getTimeAgo(user.lastActive)}` : ''
+    user.lastActive ? `Last active: ${getTimeAgo(user.lastActive)}` : 'No recent activity'
   }</p>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div class="stat-card"><div class="stat-value">${
+        <div class="stat-card p-4 border rounded"><div class="stat-value text-xl font-bold">${
           user.wellnessScore
-        }</div><div class="stat-label">Wellness Score</div></div>
-        <div class="stat-card"><div class="stat-value">${
+        }</div><div class="stat-label text-sm">Wellness Score</div></div>
+        <div class="stat-card p-4 border rounded"><div class="stat-value text-xl font-bold">${
           user.sessions
-        }</div><div class="stat-label">Total Sessions</div></div>
+        }</div><div class="stat-label text-sm">Total Sessions</div></div>
       </div>
       <div class="flex gap-2">
         <button class="btn btn-wellness flex-1">Contact User</button>
@@ -167,7 +212,7 @@ function openReportModal() {
 }
 
 function generateReport() {
-  // Simulate a delay for report generation (e.g., 2.5 seconds)
+  // Simulate a delay for report generation
   setTimeout(() => {
     // Hide spinner and show the report content
     document.getElementById('generating-view').style.display = 'none';
@@ -182,7 +227,6 @@ function renderWellnessChart() {
   const ctx = document.getElementById('wellness-chart')?.getContext('2d');
   if (!ctx) return;
 
-  // If a chart instance already exists, destroy it to prevent conflicts
   if (wellnessChartInstance) {
     wellnessChartInstance.destroy();
   }
@@ -193,7 +237,7 @@ function renderWellnessChart() {
     datasets: [
       {
         label: 'Average Wellness Score',
-        data: [65, 72, 70, 78, 81], // Sample data
+        data: [65, 72, 70, 78, 81], // Sample trend data
         borderColor: 'hsl(238, 57%, 58%)',
         backgroundColor: 'hsla(238, 57%, 58%, 0.1)',
         fill: true,
@@ -239,80 +283,3 @@ function emergencyContacts() {
 function downloadReport() {
   showToast('Downloading report as PDF...', 'success');
 }
-
-// ... existing variables ...
-let moodChartInstance = null; // Add this line to track the new chart
-
-document.addEventListener('DOMContentLoaded', function () {
-  // ... existing auth checks ...
-  initializeAdminDashboard();
-});
-
-function initializeAdminDashboard() {
-  loadUserMonitoringData();
-  loadRecentAlerts();
-  renderMoodDistributionChart(); // Add this line
-  document.querySelectorAll('[data-count]').forEach(animateCountUp);
-}
-
-// ... existing loadUserMonitoringData function ...
-// ... existing renderUserMonitoringList function ...
-// ... existing getRiskLevelColor function ...
-// ... existing loadRecentAlerts function ...
-
-// --- NEW FUNCTION: Render Mood Distribution ---
-function renderMoodDistributionChart() {
-  const ctx = document.getElementById('mood-distribution-chart');
-  if (!ctx) return;
-
-  if (moodChartInstance) {
-    moodChartInstance.destroy();
-  }
-
-  // Data representing the distribution
-  const moodData = {
-    labels: ['Happy', 'Calm', 'Sad', 'Angry'],
-    datasets: [{
-      data: [42, 35, 15, 8],
-      backgroundColor: [
-        'hsl(159, 64%, 52%)', // Wellness (Green)
-        'hsl(238, 57%, 58%)', // Primary (Blue/Purple)
-        'hsl(215, 16%, 47%)', // Muted (Grey/Blue)
-        'hsl(0, 84%, 60%)'    // Destructive (Red)
-      ],
-      borderWidth: 0,
-      hoverOffset: 4
-    }]
-  };
-
-  moodChartInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: moodData,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '70%', // Makes the ring thinner
-      plugins: {
-        legend: {
-          display: false // We built a custom legend in HTML for better styling
-        },
-        tooltip: {
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          titleColor: '#1e293b',
-          bodyColor: '#1e293b',
-          borderColor: '#e2e8f0',
-          borderWidth: 1,
-          padding: 10,
-          displayColors: true,
-          callbacks: {
-            label: function(context) {
-              return ` ${context.label}: ${context.raw}%`;
-            }
-          }
-        }
-      }
-    }
-  });
-}
-
-// ... existing functions (viewUserDetails, report generation, etc) ...

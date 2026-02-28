@@ -15,7 +15,7 @@
     />
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="website icon" href="/images/logo.png">
+    <link rel="website icon" href="/frontend/images/logo.png">
     <link rel="stylesheet" href="styles/main.css" />
     <style>
       .pulse-destructive {
@@ -72,8 +72,9 @@
               <div class="flex items-start justify-between p-6">
                 <div>
                   <h3 class="text-sm font-medium text-muted-foreground">Total Users</h3>
-                  <div class="text-3xl font-bold mt-1" data-count="136">0</div>
-                  <p class="text-xs text-muted-foreground mt-1">+12% from last month</p>
+                  <!-- Added ID to connect to real-time fetch -->
+                  <div id="stat-total-users" class="text-3xl font-bold mt-1" data-count="0">0</div>
+                  <p class="text-xs text-muted-foreground mt-1">Platform reach</p>
                 </div>
                 <i data-lucide="users" class="w-5 h-5 text-muted-foreground"></i>
               </div>
@@ -82,8 +83,9 @@
               <div class="flex items-start justify-between p-6">
                 <div>
                   <h3 class="text-sm font-medium text-muted-foreground">Active Sessions</h3>
-                  <div class="text-3xl font-bold mt-1" data-count="10">0</div>
-                  <p class="text-xs text-muted-foreground mt-1">Currently ongoing</p>
+                  <!-- Added ID to connect to real-time fetch -->
+                  <div id="stat-active-sessions" class="text-3xl font-bold mt-1" data-count="0">0</div>
+                  <p class="text-xs text-muted-foreground mt-1">Over 24 hours</p>
                 </div>
                 <i data-lucide="message-circle" class="w-5 h-5 text-muted-foreground"></i>
               </div>
@@ -92,8 +94,9 @@
               <div class="flex items-start justify-between p-6">
                 <div>
                   <h3 class="text-sm font-medium text-muted-foreground">High Risk Users</h3>
-                  <div class="text-3xl font-bold text-warning mt-1" data-count="9">0</div>
-                  <p class="text-xs text-muted-foreground mt-1">Require attention</p>
+                  <!-- Added ID to connect to real-time fetch -->
+                  <div id="stat-high-risk" class="text-3xl font-bold text-warning mt-1" data-count="0">0</div>
+                  <p class="text-xs text-muted-foreground mt-1">Score < 50</p>
                 </div>
                 <i data-lucide="alert-triangle" class="w-5 h-5 text-warning"></i>
               </div>
@@ -102,8 +105,9 @@
               <div class="flex items-start justify-between p-6">
                 <div>
                   <h3 class="text-sm font-medium text-muted-foreground">Avg Wellness Score</h3>
-                  <div class="text-3xl font-bold text-wellness mt-1" data-count="78.5">0</div>
-                  <p class="text-xs text-muted-foreground mt-1">+5.2% this week</p>
+                  <!-- Added ID to connect to real-time fetch -->
+                  <div id="stat-avg-score" class="text-3xl font-bold text-wellness mt-1" data-count="0">0</div>
+                  <p class="text-xs text-muted-foreground mt-1">Across all users</p>
                 </div>
                 <i data-lucide="trending-up" class="w-5 h-5 text-wellness"></i>
               </div>
@@ -114,14 +118,21 @@
         <div class="grid lg:grid-cols-3 gap-8">
           <div class="lg:col-span-2 space-y-6">
             <div class="wellness-card">
-              <div class="card-header">
-                <h3 class="card-title flex items-center gap-2">
-                  <i data-lucide="activity" class="w-5 h-5 text-primary"></i>User Monitoring
-                </h3>
-                <p class="card-description">Real-time tracking of user wellness and engagement</p>
+              <div class="card-header flex justify-between items-center">
+                <div>
+                  <h3 class="card-title flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5 text-primary"></i>User Monitoring
+                  </h3>
+                  <p class="card-description">Real-time tracking of user wellness and engagement</p>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="loadUserMonitoringData()">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync
+                </button>
               </div>
               <div class="card-content">
-                <div class="space-y-4" id="user-monitoring-list"></div>
+                <div class="space-y-4" id="user-monitoring-list">
+                  <div class="p-4 text-center text-muted-foreground">Loading users from backend...</div>
+                </div>
               </div>
             </div>
           </div>
@@ -133,34 +144,34 @@
                   <i data-lucide="alert-triangle" class="w-5 h-5 text-warning"></i>Recent Alerts
                 </h3>
               </div>
-              <div class="card-content space-y-4" id="recent-alerts"></div>
-
+              <div class="card-content space-y-4" id="recent-alerts">
+                <div class="p-4 text-center text-muted-foreground">Loading alerts...</div>
+              </div>
             </div>
             
-            
-
             <div class="wellness-card">
-  <div class="card-header"><h3 class="card-title">Quick Actions</h3></div>
-  <div class="card-content space-y-3">
-    
-    <button class="btn btn-wellness w-full justify-start" onclick="navigateTo('all-users.html')">
-      <i data-lucide="users" class="w-4 h-4"></i>View All Users
-    </button>
-    
-    <button class="btn btn-outline w-full justify-start" onclick="navigateTo('manage-sessions.html')">
-      <i data-lucide="calendar" class="w-4 h-4"></i>Manage Sessions
-    </button>
+              <div class="card-header"><h3 class="card-title">Quick Actions</h3></div>
+              <div class="card-content space-y-3">
+                <button class="btn btn-wellness w-full justify-start" onclick="navigateTo('all-users.html')">
+                  <i data-lucide="users" class="w-4 h-4"></i>View All Users
+                </button>
+                <button class="btn btn-outline w-full justify-start" onclick="navigateTo('manage-sessions.html')">
+                  <i data-lucide="calendar" class="w-4 h-4"></i>Manage Sessions
+                </button>
+               <button class="btn btn-outline w-full justify-start" onclick="openReportModal()">
+                <i data-lucide="trending-up" class="w-4 h-4"></i>Generate Report
+                </button>
+                <button class="btn btn-outline w-full justify-start" onclick="navigateTo('emergency-contacts.html')">
+                  <i data-lucide="phone" class="w-4 h-4"></i>Emergency Contacts
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-   <button class="btn btn-outline w-full justify-start" onclick="navigateTo('reports.html')">
-    <i data-lucide="trending-up" class="w-4 h-4"></i>Generate Report
-</button>
-
-<button class="btn btn-outline w-full justify-start" onclick="navigateTo('emergency-contacts.html')">
-    <i data-lucide="phone" class="w-4 h-4"></i>Emergency Contacts
-</button>
-  </div>
-</div>
-
+    <!-- Modals -->
     <div
       id="user-detail-modal"
       class="modal-container fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
@@ -189,7 +200,7 @@
         </div>
         <div class="card-content min-h-[300px]" id="report-modal-content">
           <div id="generating-view" class="text-center p-8 flex flex-col justify-center items-center h-full">
-            <div class="spinner mb-4"></div>
+            <div class="spinner mb-4" style="border: 4px solid var(--border); border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
             <p class="font-medium text-lg">Generating Your Report...</p>
             <p class="text-sm text-muted-foreground mt-1">
               This may take a moment. We're analyzing the latest user data.
@@ -198,17 +209,17 @@
 
           <div id="report-view" class="hidden space-y-6">
             <div class="grid grid-cols-3 gap-4 text-center">
-              <div class="stat-card">
-                <div class="stat-value text-wellness">82%</div>
-                <div class="stat-label">Positive Sentiment</div>
+              <div class="stat-card p-4 border rounded">
+                <div class="stat-value text-wellness text-2xl font-bold">82%</div>
+                <div class="stat-label text-sm text-muted-foreground">Positive Sentiment</div>
               </div>
-              <div class="stat-card">
-                <div class="stat-value">15h</div>
-                <div class="stat-label">Avg. Weekly Engagement</div>
+              <div class="stat-card p-4 border rounded">
+                <div class="stat-value text-2xl font-bold">15h</div>
+                <div class="stat-label text-sm text-muted-foreground">Avg. Weekly Engagement</div>
               </div>
-              <div class="stat-card">
-                <div class="stat-value text-destructive">5</div>
-                <div class="stat-label">New High-Risk Users</div>
+              <div class="stat-card p-4 border rounded">
+                <div class="stat-value text-destructive text-2xl font-bold">5</div>
+                <div class="stat-label text-sm text-muted-foreground">New High-Risk Users</div>
               </div>
             </div>
             <div>
@@ -227,6 +238,7 @@
 
     <div id="toast-container"></div>
 
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
     <script src="scripts/main.js"></script>
     <script src="scripts/admin-dashboard.js"></script>
   </body>

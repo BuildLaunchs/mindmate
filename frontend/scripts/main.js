@@ -1,5 +1,8 @@
 // Main JavaScript file for common functionality
 
+// Define Global API Base URL pointing to the local Flask backend
+const API_BASE_URL = 'https://mindmate-ps7s.onrender.com/';
+
 // Initialize Lucide icons when DOM loads
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof lucide !== 'undefined') {
@@ -41,7 +44,7 @@ function validatePassword(password) {
   return password.length >= 6;
 }
 
-// Change: Added function to toggle password visibility
+// Toggle password visibility
 function togglePasswordVisibility(fieldId) {
   const input = document.getElementById(fieldId);
   const button = input.nextElementSibling;
@@ -76,19 +79,25 @@ function getFromStorage(key) {
   }
 }
 
-// Change: Added dynamic number counting animation
+// Dynamic number counting animation
 function animateCountUp(element) {
   const target = parseFloat(element.dataset.count);
   const duration = 1500;
   let start = 0;
-  const stepTime = Math.abs(Math.floor(duration / target));
+  const stepTime = Math.abs(Math.floor(duration / (target || 1)));
+  
+  if (target === 0) {
+      element.textContent = "0";
+      return;
+  }
   
   const timer = setInterval(() => {
-    start += 1;
-    element.textContent = Math.floor(start);
+    start += (target > 50 ? 2 : 1); // Speed up if target is large
     if (start >= target) {
       clearInterval(timer);
       element.textContent = target.toLocaleString();
+    } else {
+      element.textContent = Math.floor(start);
     }
   }, stepTime);
 }
@@ -113,7 +122,7 @@ function navigateTo(page) {
   window.location.href = page;
 }
 
-// Change: Improved Modal helpers with smooth transitions
+// Improved Modal helpers with smooth transitions
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
@@ -130,6 +139,7 @@ function closeModal(modalId) {
 
 // Utility functions
 function getTimeAgo(date) {
+  if (!date) return 'Unknown time';
   const now = new Date();
   const diff = now - new Date(date);
   const minutes = Math.floor(diff / 60000);
@@ -180,10 +190,3 @@ function initializeInteractiveElements() {
     });
   });
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-});
-
