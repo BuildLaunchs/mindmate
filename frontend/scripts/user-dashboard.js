@@ -13,7 +13,7 @@ let currentQuestionIndex = 0;
 let userAnswers = [];
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000'; // Make sure this matches your Python running port
+const API_BASE_URL = 'https://mindmate-ps7s.onrender.com/'; // Make sure this matches your Python running port
 
 
 // --- START: Theme Customization ---
