@@ -198,7 +198,7 @@ function closeUserDetail() {
   closeModal('user-detail-modal');
 }
 
-// --- Report Generation Functions ---
+// --- Report Generation Functions (Live Data + PDF Download) ---
 
 function openReportModal() {
   openModal('report-modal');
@@ -207,23 +207,37 @@ function openReportModal() {
   document.getElementById('generating-view').style.display = 'flex';
   document.getElementById('report-view').style.display = 'none';
 
-  // Start the report generation process
+  // Start the live report generation process
   generateReport();
 }
 
-function generateReport() {
-  // Simulate a delay for report generation
-  setTimeout(() => {
-    // Hide spinner and show the report content
-    document.getElementById('generating-view').style.display = 'none';
-    document.getElementById('report-view').style.display = 'block';
+async function generateReport() {
+  try {
+      // Fetch live statistics from the new backend route
+      const response = await fetch(`${API_BASE_URL}/admin/report_data`);
+      if (!response.ok) throw new Error("Failed to fetch report data");
+      
+      const data = await response.json();
+      
+      // Inject Live values into HTML
+      document.getElementById('rep-sentiment').textContent = `${data.positiveSentiment}%`;
+      document.getElementById('rep-engagement').textContent = `${data.avgEngagement} sessions`;
+      document.getElementById('rep-highrisk').textContent = data.highRiskCount;
 
-    // Render the chart with new data
-    renderWellnessChart();
-  }, 2500);
+      // Swap UI layout to show the results
+      document.getElementById('generating-view').style.display = 'none';
+      document.getElementById('report-view').style.display = 'block';
+
+      // Render the graph with Live Trend Data
+      renderWellnessChart(data.trend);
+  } catch (error) {
+      console.error("Report Generation Error:", error);
+      showToast("Error pulling live data from server", "error");
+      closeModal('report-modal');
+  }
 }
 
-function renderWellnessChart() {
+function renderWellnessChart(trendData) {
   const ctx = document.getElementById('wellness-chart')?.getContext('2d');
   if (!ctx) return;
 
@@ -231,13 +245,16 @@ function renderWellnessChart() {
     wellnessChartInstance.destroy();
   }
 
+  // Provide fallback just in case data fails
+  const dataPoints = trendData && trendData.length === 5 ? trendData : [65, 72, 70, 78, 81];
   const labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'This Week'];
+  
   const data = {
     labels: labels,
     datasets: [
       {
         label: 'Average Wellness Score',
-        data: [65, 72, 70, 78, 81], // Sample trend data
+        data: dataPoints, 
         borderColor: 'hsl(238, 57%, 58%)',
         backgroundColor: 'hsla(238, 57%, 58%, 0.1)',
         fill: true,
@@ -259,7 +276,7 @@ function renderWellnessChart() {
       scales: {
         y: {
           beginAtZero: false,
-          suggestedMin: 50,
+          suggestedMin: 30,
           suggestedMax: 100,
           ticks: {
             stepSize: 10,
@@ -267,6 +284,37 @@ function renderWellnessChart() {
         },
       },
     },
+  });
+}
+
+function downloadReport() {
+  showToast('Preparing PDF download...', 'success');
+  
+  // Isolate the element we want in the PDF
+  const element = document.getElementById('printable-report');
+  
+  // Show the title specifically for the generated PDF document
+  const pdfTitle = document.getElementById('pdf-title');
+  if (pdfTitle) pdfTitle.classList.remove('hidden');
+
+  // Config parameters for html2pdf
+  const opt = {
+    margin:       0.5,
+    filename:     `MindMate_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+
+  // Execute PDF generation
+  html2pdf().set(opt).from(element).save().then(() => {
+    // Hide the title again after saving
+    if (pdfTitle) pdfTitle.classList.add('hidden');
+    showToast('Report downloaded successfully!', 'success');
+  }).catch(err => {
+    console.error("PDF generation failed:", err);
+    showToast('Failed to generate PDF', 'error');
+    if (pdfTitle) pdfTitle.classList.add('hidden');
   });
 }
 
@@ -279,7 +327,4 @@ function manageSessions() {
 }
 function emergencyContacts() {
   showToast('Loading emergency protocols...', 'success');
-}
-function downloadReport() {
-  showToast('Downloading report as PDF...', 'success');
 }
