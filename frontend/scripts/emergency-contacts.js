@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-    renderAlerts();
-    renderContacts();
+    // Fetch live alerts from the backend
+    fetchLiveAlerts();
+    
+    // Fetch live users to populate the Guardian Directory
+    fetchLiveContacts();
     
     // Check if dark mode preference is saved
     const isDark = localStorage.getItem('theme') === 'dark';
@@ -8,34 +11,52 @@ document.addEventListener('DOMContentLoaded', function() {
     if(isDark) document.documentElement.classList.add('dark');
 });
 
-// Mock Data with specific trigger types for the AI
-const activeAlerts = [
-    { 
-        id: 1, 
-        user: 'Kalp Patel', 
-        guardian: 'Dr. Mehta',
-        reason: 'Self-harm keywords detected in chat', 
-        trigger: 'self_harm',
-        time: '10 mins ago', 
-        severity: 'critical' 
-    },
-    { 
-        id: 2, 
-        user: 'joe smith', 
-        guardian: 'Sunita Kumar',
-        reason: 'Consecutive missed sessions (No Show)', 
-        trigger: 'avoidance',
-        time: '2 hours ago', 
-        severity: 'high' 
-    }
-];
+let activeAlerts = [];
+let liveContactList = [];
 
-const contactList = [
-    { id: 1, user: 'Smit Prajapati', guardian: 'Ramesh Prajapati', relation: 'Father', phone: '+91 98765 43210', email: 'ramesh@email.com' },
-    { id: 2, user: 'Ravi Kumar', guardian: 'Sunita Kumar', relation: 'Mother', phone: '+91 91234 56789', email: 'sunita@email.com' },
-    { id: 3, user: 'Kalp Patel', guardian: 'Dr. Mehta', relation: 'Therapist', phone: '+91 99887 76655', email: 'clinic@mehta.com' },
-    { id: 4, user: 'Dax Prajapati', guardian: 'Sunita Kumar', relation: 'Mother', phone: '+91 91234 56788', email: 'sunita.k@email.com' },
-];
+async function fetchLiveAlerts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/alerts`);
+        if (response.ok) {
+            const alerts = await response.json();
+            activeAlerts = alerts.map((a, index) => ({
+                id: index + 1,
+                user: a.user,
+                guardian: 'Emergency Line',
+                reason: a.type,
+                trigger: a.severity === 'high' ? 'self_harm' : 'avoidance',
+                time: getTimeAgo(a.time),
+                severity: a.severity === 'high' ? 'critical' : 'warning'
+            }));
+        }
+    } catch (error) {
+        console.error("Failed to fetch live alerts.", error);
+    }
+    renderAlerts();
+}
+
+async function fetchLiveContacts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/users`);
+        if (response.ok) {
+            const users = await response.json();
+            // Map the API structure to the UI requirements
+            liveContactList = users.map(u => ({
+                id: u.id,
+                user: u.name,
+                email: u.email,
+                userPhone: u.contactNumber || 'N/A',
+                emergencyPhone: u.emergencyContact || 'N/A'
+            }));
+            renderContacts(liveContactList);
+        } else {
+            renderContacts([]);
+        }
+    } catch (error) {
+        console.error("Failed to fetch live contacts.", error);
+        renderContacts([]);
+    }
+}
 
 function toggleTheme() {
     const html = document.documentElement;
@@ -67,66 +88,41 @@ function renderAlerts() {
         lucide.createIcons();
         return;
     }
-
-    badge.innerText = activeAlerts.length;
-    badge.classList.remove('hidden');
-
-    container.innerHTML = activeAlerts.map(alert => `
-        <div class="bg-card border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row items-start gap-4 ${alert.severity === 'critical' ? 'pulse-border border-destructive' : 'border-warning'}">
-            <div class="${alert.severity === 'critical' ? 'bg-destructive' : 'bg-warning'} p-3 rounded-xl text-white shrink-0 shadow-lg shadow-${alert.severity === 'critical' ? 'destructive' : 'warning'}/20">
-                <i data-lucide="${alert.severity === 'critical' ? 'siren' : 'alert-triangle'}" class="w-6 h-6"></i>
-            </div>
-            <div class="flex-1 w-full">
-                <div class="flex justify-between items-start mb-1">
-                    <h3 class="font-bold text-lg">${alert.user}</h3>
-                    <span class="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded-md flex items-center gap-1">
-                        <i data-lucide="clock" class="w-3 h-3"></i> ${alert.time}
-                    </span>
-                </div>
-                <p class="text-sm mb-4 font-medium text-foreground/80 bg-muted/30 p-2 rounded border border-border/50">
-                    <span class="font-bold text-${alert.severity === 'critical' ? 'destructive' : 'warning'}">Trigger:</span> ${alert.reason}
-                </p>
-                <div class="flex flex-wrap gap-2 mt-auto">
-                    <button class="btn btn-sm btn-hero flex-1" onclick="openCrisisAssistant(${alert.id})">
-                        <i data-lucide="bot" class="w-4 h-4"></i> AI Script
-                    </button>
-                    <button class="btn btn-sm btn-outline flex-1" onclick="startSecureCall('${alert.guardian}')">
-                        <i data-lucide="phone" class="w-4 h-4"></i> Call Guardian
-                    </button>
-                    <button class="btn btn-sm btn-secondary hover:bg-secondary/20 hover:text-secondary-foreground" onclick="resolveAlert(${alert.id})" title="Resolve">
-                        <i data-lucide="check" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    lucide.createIcons();
 }
-
-function renderContacts(data = contactList) {
+function renderContacts(data = liveContactList) {
     const tbody = document.getElementById('contacts-table-body');
+    
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-muted-foreground">No users found.</td></tr>`;
+        return;
+    }
+
     tbody.innerHTML = data.map(contact => `
         <tr class="border-b last:border-0 hover:bg-muted/30 transition-colors group">
             <td class="p-4">
                 <div class="font-medium">${contact.user}</div>
-                <div class="text-xs text-muted-foreground">ID: #${Math.floor(Math.random()*10000)}</div>
+                <div class="text-xs text-muted-foreground">${contact.email || 'No email provided'}</div>
             </td>
-            <td class="p-4 font-medium text-foreground/90">${contact.guardian}</td>
             <td class="p-4">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    ${contact.relation}
-                </span>
+                <div class="text-sm font-mono flex items-center gap-2">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-muted-foreground"></i> 
+                    ${contact.userPhone && contact.userPhone !== 'N/A' ? contact.userPhone : '<span class="text-muted-foreground/50">N/A</span>'}
+                </div>
             </td>
             <td class="p-4">
                 <div class="text-sm font-mono flex items-center gap-2 mb-1">
-                    <i data-lucide="smartphone" class="w-3 h-3 text-muted-foreground"></i> ${contact.phone}
+                    <i data-lucide="phone-alert" class="w-4 h-4 text-destructive"></i> 
+                    <span class="font-medium text-destructive">${contact.emergencyPhone && contact.emergencyPhone !== 'N/A' ? contact.emergencyPhone : '<span class="text-muted-foreground/50">N/A</span>'}</span>
                 </div>
-                <div class="text-sm text-muted-foreground flex items-center gap-2">
-                    <i data-lucide="mail" class="w-3 h-3"></i> ${contact.email}
-                </div>
+                ${contact.emergencyPhone && contact.emergencyPhone !== 'N/A' ? `
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-destructive uppercase tracking-wider">
+                        Guardian Line
+                    </span>
+                ` : ''}
             </td>
             <td class="p-4 text-right">
-                <button onclick="startSecureCall('${contact.guardian}')" class="btn btn-sm btn-outline btn-icon hover:bg-primary hover:text-white transition-colors group-hover:border-primary">
+                <button onclick="startSecureCall('${contact.emergencyPhone !== 'N/A' && contact.emergencyPhone ? contact.emergencyPhone : contact.userPhone}', '${contact.user}')" 
+                        class="btn btn-sm btn-outline btn-icon hover:bg-destructive hover:text-white hover:border-destructive transition-colors group-hover:border-destructive shadow-sm" title="Call Emergency Contact">
                     <i data-lucide="phone-call" class="w-4 h-4"></i>
                 </button>
             </td>
@@ -137,10 +133,12 @@ function renderContacts(data = contactList) {
 
 function filterContacts() {
     const term = document.getElementById('contact-search').value.toLowerCase();
-    const filtered = contactList.filter(c => 
-        c.user.toLowerCase().includes(term) || 
-        c.guardian.toLowerCase().includes(term) ||
-        c.phone.includes(term)
+    
+    const filtered = liveContactList.filter(c => 
+        (c.user && c.user.toLowerCase().includes(term)) || 
+        (c.email && c.email.toLowerCase().includes(term)) ||
+        (c.userPhone && c.userPhone.includes(term)) ||
+        (c.emergencyPhone && c.emergencyPhone.includes(term))
     );
     renderContacts(filtered);
 }
@@ -170,7 +168,6 @@ function openCrisisAssistant(alertId) {
 }
 
 function generateScriptContent(alert) {
-    // Basic template logic based on trigger
     let script = '';
     
     if (alert.trigger === 'self_harm') {
@@ -187,7 +184,7 @@ function generateScriptContent(alert) {
                 <div class="script-step" style="animation-delay: 0.1s">
                     <p class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Step 1: Introduction</p>
                     <div class="bg-card border p-3 rounded-lg text-lg">
-                        "Hello, am I speaking with <span class="text-primary font-bold">${alert.guardian}</span>? This is the Mind Mate Safety Team regarding <span class="font-bold">${alert.user}</span>."
+                        "Hello, am I speaking with <span class="text-primary font-bold">the Guardian</span>? This is the Mind Mate Safety Team regarding <span class="font-bold">${alert.user}</span>."
                     </div>
                 </div>
 
@@ -219,13 +216,13 @@ function generateScriptContent(alert) {
                  <div class="script-step" style="animation-delay: 0.1s">
                     <p class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Step 1: Introduction</p>
                     <div class="bg-card border p-3 rounded-lg text-lg">
-                        "Hi <span class="text-primary font-bold">${alert.guardian}</span>, calling from Mind Mate. We missed <span class="font-bold">${alert.user}</span> at their scheduled session today."
+                        "Hi, calling from Mind Mate regarding <span class="font-bold">${alert.user}</span>. We noticed a recent dip in their platform activity."
                     </div>
                 </div>
                  <div class="script-step" style="animation-delay: 0.3s">
                     <p class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Step 2: Soft Inquiry</p>
                     <div class="bg-card border p-3 rounded-lg text-lg">
-                        "How have they been feeling today? We want to ensure everything is okay, as missed sessions can sometimes indicate a dip in mood."
+                        "How have they been feeling today? We want to ensure everything is okay, as lack of engagement can sometimes indicate a dip in mood."
                     </div>
                 </div>
             </div>
@@ -235,28 +232,32 @@ function generateScriptContent(alert) {
 }
 
 function initiateCallFromModal() {
-    const guardianName = document.getElementById('modal-subject').innerText.split('(')[0];
+    const guardianRef = document.getElementById('modal-subject').innerText;
     closeModal('crisis-modal');
-    startSecureCall(guardianName);
+    startSecureCall('System Dialing...', guardianRef);
 }
 
 // --- SECURE CALL SIMULATION ---
-function startSecureCall(name) {
-    document.getElementById('calling-name').innerText = name;
+function startSecureCall(numberToCall, userName) {
+    if(!numberToCall || numberToCall === 'N/A' || numberToCall === 'undefined') {
+        showToast('Valid contact number not found for this user.', 'error');
+        return;
+    }
+    
+    document.getElementById('calling-name').innerText = numberToCall;
+    document.getElementById('calling-desc').innerText = `Dialing secure line for:\n${userName}`;
     openModal('call-modal');
 }
 
 function endCall() {
     closeModal('call-modal');
-    showToast('Call ended. Duration: 0:42', 'success');
+    showToast('Call ended. Duration logged.', 'success');
 }
 
 // Global actions
 function resolveAlert(id) {
-    // Custom styled confirmation (using toast for simplicity here, but would be a modal in prod)
     const index = activeAlerts.findIndex(a => a.id === id);
     if (index > -1) {
-        // Animation effect before removal
         showToast('Alert resolved. Updating logs...', 'success');
         activeAlerts.splice(index, 1);
         renderAlerts();
@@ -264,7 +265,6 @@ function resolveAlert(id) {
 }
 
 function confirmGlobalAlert() {
-    // Replaces the native confirm() with a safer approach logic (in real app, a modal)
     if(confirm('BROADCAST WARNING: This will trigger alarms for all on-duty clinicians. Are you sure?')) {
         showToast('Global alert broadcasted. Emergency teams notified.', 'error');
     }

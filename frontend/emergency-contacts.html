@@ -75,23 +75,22 @@
             <section class="wellness-card overflow-hidden">
                 <div class="card-header border-b flex flex-col md:flex-row justify-between items-center gap-4 bg-muted/30" style="border-color: var(--border)">
                     <div>
-                        <h3 class="card-title">Guardian Directory</h3>
-                        <p class="text-sm text-muted-foreground">Authorized emergency contacts for at-risk users</p>
+                        <h3 class="card-title">User Guardian Directory</h3>
+                        <p class="text-sm text-muted-foreground">Quick access to user and emergency contact lines</p>
                     </div>
                     <div class="relative w-full md:w-72">
                         <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
-                        <input type="text" id="contact-search" placeholder="Search by name, phone or relation..." class="input pl-10" onkeyup="filterContacts()">
+                        <input type="text" id="contact-search" placeholder="Search by name, email or phone..." class="input pl-10" onkeyup="filterContacts()">
                     </div>
                 </div>
                 <div class="card-content p-0 overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
                             <tr>
-                                <th class="p-4 font-medium">At-Risk User</th>
-                                <th class="p-4 font-medium">Primary Guardian</th>
-                                <th class="p-4 font-medium">Relation</th>
-                                <th class="p-4 font-medium">Contact Details</th>
-                                <th class="p-4 font-medium text-right">Quick Actions</th>
+                                <th class="p-4 font-medium">User Details</th>
+                                <th class="p-4 font-medium">User Contact</th>
+                                <th class="p-4 font-medium">Emergency Contact</th>
+                                <th class="p-4 font-medium text-right">Quick Action</th>
                             </tr>
                         </thead>
                         <tbody id="contacts-table-body" class="divide-y" style="divide-color: var(--border)">
@@ -173,15 +172,16 @@
     </div>
 
     <div id="call-modal" class="modal-container fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-        <div class="modal-card flex flex-col items-center text-white">
-            <div class="w-24 h-24 bg-muted/20 rounded-full flex items-center justify-center mb-6 relative">
+        <div class="modal-card flex flex-col items-center text-white text-center">
+            <div class="w-24 h-24 bg-muted/20 rounded-full flex items-center justify-center mb-6 relative mx-auto">
                 <div class="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
                 <i data-lucide="phone" class="w-10 h-10 text-white"></i>
             </div>
             <h3 class="text-2xl font-light mb-2">Secure Line</h3>
-            <p class="text-lg font-bold mb-8" id="calling-name">Connecting...</p>
+            <p class="text-xl font-bold mb-2" id="calling-name">Connecting...</p>
+            <p class="text-sm text-white/70 mb-8 whitespace-pre-line" id="calling-desc"></p>
             
-            <div class="flex gap-6">
+            <div class="flex gap-6 justify-center">
                 <button class="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all backdrop-blur-sm">
                     <i data-lucide="mic-off" class="w-6 h-6"></i>
                 </button>
